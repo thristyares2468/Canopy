@@ -1,35 +1,44 @@
 # Canopy Browser
 
-Canopy is a macOS-first Chromium browser built with Electron. It uses a spatial sidebar, separate tab spaces, Google search, native macOS window materials, and secure sandboxed browsing views.
+Canopy is a macOS browser distributed with a real Chromium runtime. It enables Chromium's native vertical-tab sidebar and adds Arc-style Spaces, persistent browser preferences, trackpad Space switching, and a deliberately buried internal Jim's Mowing launcher through a Manifest V3 extension.
 
-The Jim's Mowing game is intentionally absent from the normal browser interface. **Settings → Advanced → Internal pages** opens the hosted Railway game directly and presents it as `canopy://jims-mowing`.
+The page renderer, networking, permissions, downloads, site isolation, and browser chrome are provided directly by Chromium. Canopy does not use Electron.
 
-## Run locally
+## Requirements
 
-Use the bundled Node/pnpm environment or any Node 22+ installation:
+- Apple Silicon or Intel Mac
+- Node.js 22+ and pnpm for checks
+- Internet access for the first Chromium download
+
+## Run
 
 ```bash
-pnpm install
-pnpm dev
+pnpm start
 ```
+
+The first run downloads the pinned official Chromium snapshot into `~/Library/Caches/Canopy`. Later launches reuse it. Canopy opens `https://mystandrews.saac.qld.edu.au/` as its startup page.
+
+The left sidebar is enabled automatically and Spaces are backed by native Chromium tab groups. A physical two-finger horizontal trackpad swipe switches between them. Open the Canopy extension from Chromium's extension toolbar when you want to create Spaces or access Canopy's settings.
+
+## Build The macOS App
+
+```bash
+pnpm build
+open ~/Applications/Canopy.app
+```
+
+The local build is installed at `~/Applications/Canopy.app` and archived at `release/Canopy-macOS.zip`. The outer launcher preserves the untouched Chromium runtime so HTTPS and browser services keep their original behavior. Public distribution still requires Apple Developer ID signing and notarization.
 
 ## Checks
 
 ```bash
 pnpm check
-pnpm test:e2e
 ```
 
-## Build for macOS
+## Privacy And Internal Pages
 
-```bash
-pnpm package:mac
-```
+Google geolocation is blocked by default through Chromium's site-content settings, so the site cannot repeatedly prompt. It can be changed under **Canopy Settings > Privacy**.
 
-Unsigned local builds work normally. Public distribution requires an Apple Developer ID certificate and notarization credentials.
+Canopy deliberately leaves Google Sync services disabled and does not need or embed Google API secrets. Normal Google search and websites work without them.
 
-## Jim's Mowing
-
-- Online multiplayer server: `https://jimsmowingandlawncare.up.railway.app`
-
-Canopy loads the hosted page itself, so the game client and WebSocket use the same Railway origin as they do in a normal Chromium tab. Canopy does not read database credentials or execute the game server locally.
+The Jim's Mowing multiplayer page is under **Canopy Settings > Advanced > Developer options > Internal pages** and opens the hosted server at `https://jimsmowingandlawncare.up.railway.app/`. The browser does not use or store the game database URL.

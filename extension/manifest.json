@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "Canopy",
+  "description": "Spatial tabs, spaces, and private Canopy browser settings.",
+  "version": "0.2.0",
+  "minimum_chrome_version": "116",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAs7ZNkZeucxw4hMRhi3VAe+w154FmlXhXu2bEEL1T1ysqROOWYBDEanjcZj5k41DPprumeWt5U1o5bnrgbjamFpXUOZjSlIyMPZN7/hgB0Oi8YVTXyYgV8CIqBr0T9rSHjfvwEAoebKpX4t8Fz0GMVT62tAQ1KJEiVcM2OBShVe3rfgAJwRhiqHC4haESTko+vMCmsjcOppN5eDCl2nooxyC0Y8/gvGb7KQxgJNtUZmBuOycgCIw8MO7WS8H3aEFHGqNrcAw07VXunNmBtLUQORsHtArldvDZc4I6t/eg0f7TjRqTxqWeDcL5INo07Sv75yNcV29NfKMOUNCy5Ou4kwIDAQAB",
+  "permissions": [
+    "contentSettings",
+    "downloads",
+    "sidePanel",
+    "storage",
+    "tabGroups",
+    "tabs"
+  ],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Open Canopy sidebar"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "commands": {
+    "_execute_side_panel": {
+      "description": "Open the Canopy sidebar",
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      }
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["gestures.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ]
+}

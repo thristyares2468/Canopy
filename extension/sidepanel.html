@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Canopy</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="sidebar-header">
+      <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><strong>Canopy</strong></div>
+      <button class="icon-button" id="settings-button" type="button" aria-label="Settings" title="Settings">⚙</button>
+    </header>
+
+    <form class="address-form" id="address-form">
+      <span aria-hidden="true">⌕</span>
+      <input id="address-input" autocomplete="off" placeholder="Search or enter address" aria-label="Search or enter address">
+    </form>
+
+    <div class="space-bar">
+      <span>SPACES</span>
+      <button class="icon-button" id="add-space-button" type="button" aria-label="Create space" title="Create space">+</button>
+    </div>
+    <nav class="space-list" id="space-list" aria-label="Spaces"></nav>
+    <div class="divider"></div>
+    <div class="tab-heading"><strong id="active-space-name">Personal</strong><span id="tab-count">0 tabs</span></div>
+    <main class="tab-list" id="tab-list" aria-live="polite"></main>
+
+    <footer class="sidebar-footer">
+      <button id="new-tab-button" type="button"><span aria-hidden="true">＋</span>New tab</button>
+      <span class="shortcut">⌘ T</span>
+    </footer>
+  </div>
+
+  <dialog id="space-dialog" class="space-dialog">
+    <form id="space-form" method="dialog">
+      <header><strong>New space</strong><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
+      <label>NAME<input id="space-name" maxlength="28" autocomplete="off" placeholder="Space name"></label>
+      <fieldset><legend>COLOR</legend><div class="color-options" id="color-options"></div></fieldset>
+      <p class="form-message" id="space-message"></p>
+      <button class="primary-button" id="create-space-button" value="default">Create space</button>
+    </form>
+  </dialog>
+
+  <section class="settings-view" id="settings-view" hidden aria-label="Canopy settings">
+    <header class="settings-header"><button class="icon-button" id="close-settings" type="button" aria-label="Close settings">‹</button><div><strong>Settings</strong><span>Canopy</span></div></header>
+    <nav class="settings-nav" id="settings-nav" aria-label="Settings sections">
+      <button class="active" data-section="general">General</button>
+      <button data-section="appearance">Appearance</button>
+      <button data-section="spaces">Tabs & Spaces</button>
+      <button data-section="privacy">Privacy</button>
+      <button data-section="downloads">Downloads</button>
+      <button data-section="advanced">Advanced</button>
+    </nav>
+    <div class="settings-content">
+      <div class="settings-section active" data-panel="general">
+        <h1>General</h1>
+        <label class="setting-row vertical"><span><strong>Home page</strong><small>Opened when Canopy starts.</small></span><input id="home-page-input"></label>
+        <div class="setting-row"><span><strong>Search engine</strong><small>Address-bar searches</small></span><b>Google</b></div>
+      </div>
+      <div class="settings-section" data-panel="appearance">
+        <h1>Appearance</h1>
+        <div class="setting-row vertical"><span><strong>Theme</strong></span><div class="segmented" id="theme-control"><button data-value="system">System</button><button data-value="dark">Dark</button><button data-value="light">Light</button></div></div>
+        <label class="setting-row"><span><strong>Compact tabs</strong><small>Reduce vertical tab height.</small></span><input id="compact-tabs-toggle" type="checkbox" role="switch"></label>
+        <label class="setting-row"><span><strong>Reduce motion</strong><small>Minimize interface animation.</small></span><input id="reduce-motion-toggle" type="checkbox" role="switch"></label>
+      </div>
+      <div class="settings-section" data-panel="spaces">
+        <h1>Tabs & Spaces</h1>
+        <label class="setting-row"><span><strong>Trackpad switching</strong><small>Swipe horizontally with two fingers.</small></span><input id="space-swipe-toggle" type="checkbox" role="switch"></label>
+        <div class="managed-spaces" id="managed-spaces"></div>
+      </div>
+      <div class="settings-section" data-panel="privacy">
+        <h1>Privacy</h1>
+        <div class="privacy-banner"><strong>Chromium site isolation</strong><span>Active for all page content.</span></div>
+        <label class="setting-row"><span><strong>Block Google location</strong><small>Silently deny Google geolocation requests.</small></span><input id="google-location-toggle" type="checkbox" role="switch"></label>
+        <div class="setting-row"><span><strong>Site permissions</strong><small>Managed by Chromium.</small></span><button class="secondary-button" id="content-settings-button" type="button">Open controls</button></div>
+      </div>
+      <div class="settings-section" data-panel="downloads">
+        <h1>Downloads</h1>
+        <div class="setting-row"><span><strong>Downloads</strong><small>Review downloaded files.</small></span><button class="secondary-button" id="downloads-button" type="button">Open downloads</button></div>
+      </div>
+      <div class="settings-section" data-panel="advanced">
+        <h1>Advanced</h1>
+        <div class="setting-row"><span><strong>Chromium runtime</strong><small>Native Chromium browser process</small></span><b>Active</b></div>
+        <details class="developer-options">
+          <summary>Developer options <span>⌄</span></summary>
+          <div class="developer-content">
+            <details class="internal-pages">
+              <summary>Internal pages <span>⌄</span></summary>
+              <div class="internal-content">
+                <strong>Jim's Mowing</strong>
+                <label>ONLINE SERVER<input id="game-url-input"></label>
+                <button class="primary-button" id="open-game-button" type="button">Open Jim's Mowing</button>
+              </div>
+            </details>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="core.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>
