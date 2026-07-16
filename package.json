@@ -1,0 +1,63 @@
+{
+  "name": "canopy-browser",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A macOS-first Chromium browser with spatial tabs and an internal Jim's Mowing launcher.",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "start": "electron .",
+    "dev": "pnpm build && electron .",
+    "test": "node --test tests/*.test.cjs",
+    "test:e2e": "pnpm build && playwright test",
+    "check": "pnpm test && pnpm build",
+    "package:mac": "pnpm build && electron-builder --mac dmg zip"
+  },
+  "dependencies": {
+    "lucide-react": "^1.24.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@vitejs/plugin-react": "^6.0.3",
+    "electron": "^43.1.1",
+    "electron-builder": "^26.15.3",
+    "vite": "^8.1.4"
+  },
+  "build": {
+    "appId": "au.com.canopy.browser",
+    "productName": "Canopy",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "darkModeSupport": true,
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "dmg": {
+      "sign": false,
+      "window": {
+        "width": 540,
+        "height": 380
+      }
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
