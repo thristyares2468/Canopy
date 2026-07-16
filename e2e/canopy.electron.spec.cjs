@@ -38,6 +38,8 @@ test('Canopy exposes spatial browsing and keeps the game internal', async () => 
     const serverInput = window.locator('label').filter({ hasText: 'Online multiplayer server' }).locator('input');
     await expect(serverInput).toHaveValue('https://jimsmowingandlawncare.up.railway.app');
     await serverInput.fill(gameUrl);
+    const sourceInput = window.locator('label').filter({ hasText: "Jim's Mowing repository" }).locator('input');
+    await expect(sourceInput).toHaveValue('/Users/jherbig/Documents/GitHub/fpsshooterserver');
 
     await window.screenshot({ path: path.resolve(__dirname, '../test-results/canopy-settings.png'), animations: 'disabled' });
     await window.getByRole('button', { name: "Open Jim's Mowing" }).click();
@@ -45,22 +47,31 @@ test('Canopy exposes spatial browsing and keeps the game internal', async () => 
     await expect(window.locator('.tab-row.active')).toContainText("Jim's Mowing");
     await expect(window.locator('.tab-row.active')).toContainText('canopy://jims-mowing');
 
-    await expect.poll(async () => app.evaluate(async ({ webContents }, expectedUrl) => {
-      const game = webContents.getAllWebContents().find(contents => contents.getURL().startsWith(expectedUrl));
-      if (!game) return { ready: '', title: '', login: '' };
+    await expect.poll(async () => app.evaluate(async ({ webContents }, onlineUrl) => {
+      const game = webContents.getAllWebContents().find(contents => {
+        const url = contents.getURL();
+        return url.startsWith('http://127.0.0.1:') && !url.startsWith(onlineUrl);
+      });
+      if (!game) return { ready: '', title: '', login: '', socketUrl: '', body: '' };
       return game.executeJavaScript(`({
         ready: document.readyState,
         title: document.title,
-        login: document.querySelector('[data-testid="online-login"]')?.textContent || ''
+        login: document.getElementById('login-email')?.placeholder || '',
+        socketUrl: typeof socket !== 'undefined' && socket ? socket.url : '',
+        body: document.body?.innerText || ''
       })`);
     }, gameUrl), { timeout: 20_000 }).toMatchObject({
       ready: 'complete',
-      title: "Jim's Mowing Online",
-      login: 'Online login'
+      title: "Jim's Mowing and Lawn Care",
+      login: 'Email',
+      socketUrl: `${gameUrl.replace(/^http/, 'ws')}/`
     });
 
-    const gameCapture = await app.evaluate(async ({ webContents }, expectedUrl) => {
-      const game = webContents.getAllWebContents().find(contents => contents.getURL().startsWith(expectedUrl));
+    const gameCapture = await app.evaluate(async ({ webContents }, onlineUrl) => {
+      const game = webContents.getAllWebContents().find(contents => {
+        const url = contents.getURL();
+        return url.startsWith('http://127.0.0.1:') && !url.startsWith(onlineUrl);
+      });
       return (await game.capturePage()).toPNG().toString('base64');
     }, gameUrl);
     fs.writeFileSync(path.resolve(__dirname, '../test-results/canopy-game.png'), Buffer.from(gameCapture, 'base64'));

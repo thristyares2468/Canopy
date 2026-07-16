@@ -3,7 +3,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const crypto = require('node:crypto');
-const { CanopyStore, DEFAULT_GAME_URL } = require('./store.cjs');
+const { CanopyStore, DEFAULT_GAME_SOURCE, DEFAULT_GAME_URL } = require('./store.cjs');
+const { startGameFilesServer } = require('./game-files.cjs');
 const { displayAddress, isAllowedNavigation, originMatches, resolveAddress } = require('./navigation.cjs');
 
 app.commandLine.appendSwitch('enable-features', 'OverlayScrollbar');
@@ -27,6 +28,8 @@ let activeSpace = 'personal';
 let rendererReady = false;
 let contentVisible = true;
 let contentBounds = { x: 296, y: 62, width: 1100, height: 790 };
+let gameFilesServer = null;
+let gameFilesServerKey = '';
 let saveTabsTimer = null;
 const tabs = new Map();
 
@@ -52,7 +55,8 @@ function navigationState(webContents) {
 
 function publicTab(tab) {
   const nav = navigationState(tab.view.webContents);
-  const trustedGame = originMatches(tab.url, store?.snapshot().settings.gameUrl || DEFAULT_GAME_URL);
+  const trustedGame = tab.internalPage === 'jims-mowing'
+    || originMatches(tab.url, store?.snapshot().settings.gameUrl || DEFAULT_GAME_URL);
   return {
     id: tab.id,
     url: tab.url,
@@ -92,7 +96,7 @@ function queuePersistTabs() {
   saveTabsTimer = setTimeout(() => {
     if (!store) return;
     const serialized = Array.from(tabs.values())
-      .filter(tab => /^https?:\/\//i.test(tab.url))
+      .filter(tab => !tab.internalPage && /^https?:\/\//i.test(tab.url))
       .map(tab => ({ id: tab.id, url: tab.url, title: tab.title, space: tab.space, pinned: tab.pinned }));
     store.update({ tabs: serialized });
   }, 250);
@@ -164,7 +168,7 @@ function wireTab(tab) {
   });
 }
 
-function createTab({ url = '', space = activeSpace, activate = true, id = crypto.randomUUID() } = {}) {
+function createTab({ url = '', space = activeSpace, activate = true, id = crypto.randomUUID(), internalPage = '' } = {}) {
   if (!mainWindow || mainWindow.isDestroyed()) return null;
   const view = new WebContentsView({
     webPreferences: {
@@ -182,6 +186,7 @@ function createTab({ url = '', space = activeSpace, activate = true, id = crypto
     title: 'New tab',
     favicon: '',
     loading: false,
+    internalPage,
     space: spaces.some(item => item.id === space) ? space : 'personal',
     pinned: false
   };
@@ -399,15 +404,33 @@ function configureSession() {
 
 async function launchGame() {
   try {
-    const url = store.snapshot().settings.gameUrl || DEFAULT_GAME_URL;
-    sendToShell('browser:game-status', { state: 'starting', message: 'Opening Jim\'s Mowing online…' });
-    const tab = createTab({ url, space: activeSpace, activate: true });
-    sendToShell('browser:game-status', { state: 'ready', message: 'Jim\'s Mowing opened in Canopy.' });
+    const url = await ensureGameFiles();
+    const tab = createTab({ url, space: activeSpace, activate: true, internalPage: 'jims-mowing' });
+    sendToShell('browser:game-status', { state: 'ready', message: 'Local Jim\'s Mowing client opened with online multiplayer.' });
     return { ok: true, tab };
   } catch (error) {
     sendToShell('browser:game-status', { state: 'error', message: error.message });
     return { ok: false, message: error.message };
   }
+}
+
+async function ensureGameFiles() {
+  const settings = store.snapshot().settings;
+  const sourcePath = settings.gameSourcePath || DEFAULT_GAME_SOURCE;
+  const onlineServerUrl = settings.gameUrl || DEFAULT_GAME_URL;
+  const key = JSON.stringify([sourcePath, onlineServerUrl, settings.gamePort]);
+  if (gameFilesServer && gameFilesServerKey === key) return gameFilesServer.url;
+  if (gameFilesServer) await gameFilesServer.close();
+  gameFilesServer = null;
+  gameFilesServerKey = '';
+  sendToShell('browser:game-status', { state: 'starting', message: 'Opening the Jim\'s Mowing repository…' });
+  gameFilesServer = await startGameFilesServer({
+    sourcePath,
+    onlineServerUrl,
+    preferredPort: settings.gamePort || 3000
+  });
+  gameFilesServerKey = key;
+  return gameFilesServer.url;
 }
 
 function registerIpc() {
@@ -484,6 +507,7 @@ app.on('activate', () => {
 app.on('before-quit', () => {
   clearTimeout(saveTabsTimer);
   store?.update({ windowBounds: currentWindowBounds() }, { immediate: true });
+  gameFilesServer?.close();
 });
 
 app.on('window-all-closed', () => {

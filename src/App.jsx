@@ -47,6 +47,8 @@ const initialState = {
     sidebarCollapsed: false,
     activeSpace: 'personal',
     gameUrl: 'https://jimsmowingandlawncare.up.railway.app',
+    gameSourcePath: '/Users/jherbig/Documents/GitHub/fpsshooterserver',
+    gamePort: 3000,
     restoreTabs: true
   },
   platform: 'darwin'
@@ -114,12 +116,16 @@ function TabRow({ tab, active, collapsed, onSelect, onClose }) {
 function SettingsScreen({ state, section, setSection, onClose, onSetting, onLaunchGame, gameStatus }) {
   const settings = state.settings;
   const [draftUrl, setDraftUrl] = useState(settings.gameUrl);
+  const [draftPath, setDraftPath] = useState(settings.gameSourcePath);
+  const [draftPort, setDraftPort] = useState(settings.gamePort);
 
   useEffect(() => {
     setDraftUrl(settings.gameUrl);
-  }, [settings.gameUrl]);
+    setDraftPath(settings.gameSourcePath);
+    setDraftPort(settings.gamePort);
+  }, [settings.gamePort, settings.gameSourcePath, settings.gameUrl]);
 
-  const saveGameSettings = () => onSetting({ gameUrl: draftUrl });
+  const saveGameSettings = () => onSetting({ gameUrl: draftUrl, gameSourcePath: draftPath, gamePort: Number(draftPort) || 3000 });
 
   return (
     <section className="settings-screen" aria-label="Browser settings">
@@ -192,11 +198,13 @@ function SettingsScreen({ state, section, setSection, onClose, onSetting, onLaun
             <div className="internal-content">
               <div className="internal-heading"><div className="game-icon"><Gamepad2 /></div><div><strong>Jim's Mowing</strong><span>Hidden game launcher</span></div></div>
               <label>Online multiplayer server<input value={draftUrl} onChange={event => setDraftUrl(event.target.value)} onBlur={saveGameSettings} /></label>
+              <label>Jim's Mowing repository<input value={draftPath} onChange={event => setDraftPath(event.target.value)} onBlur={saveGameSettings} /></label>
+              <label className="port-field">Local file port<input type="number" min="1024" max="65535" value={draftPort} onChange={event => setDraftPort(event.target.value)} onBlur={saveGameSettings} /></label>
               <div className="game-actions">
                 <button type="button" className="primary-button" onClick={async () => { await saveGameSettings(); onLaunchGame(); }}><Gamepad2 />Open Jim's Mowing</button>
               </div>
               {gameStatus?.message && <div className={`game-status ${gameStatus.state || ''}`}>{gameStatus.state === 'starting' && <LoaderCircle />}<span>{gameStatus.message}</span></div>}
-              <p className="internal-note">Canopy opens the secure public game directly while presenting it as an internal Jim's Mowing page.</p>
+              <p className="internal-note">Canopy reads the game client from this repository and routes multiplayer to the configured online server without modifying either source.</p>
             </div>
           </details>
         </div>}
@@ -299,7 +307,7 @@ export default function App() {
 
   const launchGame = async () => {
     if (!api) return;
-    setGameStatus({ state: 'starting', message: "Opening Jim's Mowing online…" });
+    setGameStatus({ state: 'starting', message: "Opening the Jim's Mowing repository…" });
     const result = await api.launchGame();
     if (result?.ok) setSettingsOpen(false);
   };
