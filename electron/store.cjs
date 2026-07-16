@@ -1,7 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const DEFAULT_GAME_SOURCE = '/Users/jherbig/Documents/GitHub/fpsshooterserver';
 const DEFAULT_GAME_URL = 'https://jimsmowingandlawncare.up.railway.app';
 const RETIRED_GAME_URLS = new Set([
   'https://jim.up.railway.app',
@@ -14,8 +13,6 @@ const DEFAULT_STATE = Object.freeze({
     sidebarCollapsed: false,
     activeSpace: 'personal',
     gameUrl: DEFAULT_GAME_URL,
-    gameSourcePath: DEFAULT_GAME_SOURCE,
-    gamePort: 3000,
     restoreTabs: true
   },
   tabs: [],
@@ -33,8 +30,6 @@ function validSettings(value = {}) {
     sidebarCollapsed: !!value.sidebarCollapsed,
     activeSpace: ['personal', 'work', 'research'].includes(value.activeSpace) ? value.activeSpace : 'personal',
     gameUrl: /^https?:\/\//i.test(gameUrl) ? gameUrl : DEFAULT_GAME_URL,
-    gameSourcePath: String(value.gameSourcePath || DEFAULT_GAME_SOURCE),
-    gamePort: Math.max(1024, Math.min(65535, Number(value.gamePort) || 3000)),
     restoreTabs: value.restoreTabs !== false
   };
 }
@@ -100,7 +95,6 @@ class CanopyStore {
 
 module.exports = {
   CanopyStore,
-  DEFAULT_GAME_SOURCE,
   DEFAULT_GAME_URL,
   DEFAULT_STATE,
   validSettings,

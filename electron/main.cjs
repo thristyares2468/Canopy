@@ -3,8 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const crypto = require('node:crypto');
-const { CanopyStore, DEFAULT_GAME_SOURCE, DEFAULT_GAME_URL } = require('./store.cjs');
-const { startGameFilesServer } = require('./game-files.cjs');
+const { CanopyStore, DEFAULT_GAME_URL } = require('./store.cjs');
 const { displayAddress, isAllowedNavigation, originMatches, resolveAddress } = require('./navigation.cjs');
 
 app.commandLine.appendSwitch('enable-features', 'OverlayScrollbar');
@@ -28,8 +27,6 @@ let activeSpace = 'personal';
 let rendererReady = false;
 let contentVisible = true;
 let contentBounds = { x: 296, y: 62, width: 1100, height: 790 };
-let gameFilesServer = null;
-let gameFilesServerKey = '';
 let saveTabsTimer = null;
 const tabs = new Map();
 
@@ -361,6 +358,8 @@ function goForward() {
 
 function configureSession() {
   const browserSession = session.fromPartition('persist:canopy');
+  const chromiumVersion = process.versions.chrome || '144.0.0.0';
+  browserSession.setUserAgent(`Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromiumVersion} Safari/537.36`);
   const promptablePermissions = new Set(['media', 'geolocation', 'notifications', 'clipboard-read', 'display-capture']);
   browserSession.setPermissionCheckHandler((webContents, permission, requestingOrigin) => {
     const trustedGame = originMatches(requestingOrigin, store.snapshot().settings.gameUrl)
@@ -404,33 +403,16 @@ function configureSession() {
 
 async function launchGame() {
   try {
-    const url = await ensureGameFiles();
+    const url = store.snapshot().settings.gameUrl || DEFAULT_GAME_URL;
+    const parsed = new URL(url);
+    if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('The Jim\'s Mowing address must use HTTP or HTTPS.');
     const tab = createTab({ url, space: activeSpace, activate: true, internalPage: 'jims-mowing' });
-    sendToShell('browser:game-status', { state: 'ready', message: 'Local Jim\'s Mowing client opened with online multiplayer.' });
+    sendToShell('browser:game-status', { state: 'ready', message: 'Jim\'s Mowing opened from the online server.' });
     return { ok: true, tab };
   } catch (error) {
     sendToShell('browser:game-status', { state: 'error', message: error.message });
     return { ok: false, message: error.message };
   }
-}
-
-async function ensureGameFiles() {
-  const settings = store.snapshot().settings;
-  const sourcePath = settings.gameSourcePath || DEFAULT_GAME_SOURCE;
-  const onlineServerUrl = settings.gameUrl || DEFAULT_GAME_URL;
-  const key = JSON.stringify([sourcePath, onlineServerUrl, settings.gamePort]);
-  if (gameFilesServer && gameFilesServerKey === key) return gameFilesServer.url;
-  if (gameFilesServer) await gameFilesServer.close();
-  gameFilesServer = null;
-  gameFilesServerKey = '';
-  sendToShell('browser:game-status', { state: 'starting', message: 'Opening the Jim\'s Mowing repository…' });
-  gameFilesServer = await startGameFilesServer({
-    sourcePath,
-    onlineServerUrl,
-    preferredPort: settings.gamePort || 3000
-  });
-  gameFilesServerKey = key;
-  return gameFilesServer.url;
 }
 
 function registerIpc() {
@@ -507,7 +489,6 @@ app.on('activate', () => {
 app.on('before-quit', () => {
   clearTimeout(saveTabsTimer);
   store?.update({ windowBounds: currentWindowBounds() }, { immediate: true });
-  gameFilesServer?.close();
 });
 
 app.on('window-all-closed', () => {
