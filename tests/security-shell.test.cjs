@@ -16,12 +16,14 @@ test('web content runs sandboxed without Node integration', () => {
 
 test('Jim\'s Mowing remains inside collapsed advanced settings', () => {
   assert.match(app, /section === 'advanced'[\s\S]*?<details className="internal-pages">[\s\S]*?<strong>Jim's Mowing<\/strong>/);
-  assert.match(app, /Online multiplayer server[\s\S]*?Local GitHub checkout[\s\S]*?Open game files/);
+  assert.match(app, /Online multiplayer server[\s\S]*?Open Jim's Mowing/);
+  assert.doesNotMatch(app, /Local GitHub checkout|Local file port|Open game files/);
   assert.doesNotMatch(app, /Open web game/);
   assert.doesNotMatch(app.split('function SettingsScreen')[0], /Jim's Mowing/);
 });
 
-test('the launcher serves the existing checkout without running or copying it', () => {
-  assert.match(main, /startGameFilesServer\(\{[\s\S]*?sourcePath,[\s\S]*?onlineServerUrl/);
+test('the launcher opens the configured public game without running or copying it', () => {
+  assert.match(main, /const url = store\.snapshot\(\)\.settings\.gameUrl \|\| DEFAULT_GAME_URL;[\s\S]*?createTab\(\{ url,/);
+  assert.match(main, /displayUrl: trustedGame \? 'canopy:\/\/jims-mowing'/);
   assert.doesNotMatch(main, /spawn\(|ELECTRON_RUN_AS_NODE|copyFile|cpSync|fs\.cp/);
 });

@@ -3,8 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const crypto = require('node:crypto');
-const { CanopyStore, DEFAULT_GAME_SOURCE, DEFAULT_GAME_URL } = require('./store.cjs');
-const { startGameFilesServer } = require('./game-files.cjs');
+const { CanopyStore, DEFAULT_GAME_URL } = require('./store.cjs');
 const { displayAddress, isAllowedNavigation, originMatches, resolveAddress } = require('./navigation.cjs');
 
 app.commandLine.appendSwitch('enable-features', 'OverlayScrollbar');
@@ -12,6 +11,9 @@ app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 app.setName('Canopy');
 
 const isE2E = process.env.CANOPY_E2E === '1';
+if (isE2E && process.env.CANOPY_E2E_USER_DATA) {
+  app.setPath('userData', process.env.CANOPY_E2E_USER_DATA);
+}
 const spaces = [
   { id: 'personal', name: 'Personal', color: '#58c783' },
   { id: 'work', name: 'Work', color: '#ef806f' },
@@ -25,8 +27,6 @@ let activeSpace = 'personal';
 let rendererReady = false;
 let contentVisible = true;
 let contentBounds = { x: 296, y: 62, width: 1100, height: 790 };
-let gameFilesServer = null;
-let gameFilesServerKey = '';
 let saveTabsTimer = null;
 const tabs = new Map();
 
@@ -52,11 +52,12 @@ function navigationState(webContents) {
 
 function publicTab(tab) {
   const nav = navigationState(tab.view.webContents);
+  const trustedGame = originMatches(tab.url, store?.snapshot().settings.gameUrl || DEFAULT_GAME_URL);
   return {
     id: tab.id,
     url: tab.url,
-    displayUrl: displayAddress(tab.url, newTabUrl()),
-    title: tab.title || 'New tab',
+    displayUrl: trustedGame ? 'canopy://jims-mowing' : displayAddress(tab.url, newTabUrl()),
+    title: trustedGame ? "Jim's Mowing" : (tab.title || 'New tab'),
     favicon: tab.favicon || '',
     loading: !!tab.loading,
     space: tab.space,
@@ -396,30 +397,12 @@ function configureSession() {
   });
 }
 
-async function ensureGameFiles() {
-  const settings = store.snapshot().settings;
-  const sourcePath = settings.gameSourcePath || DEFAULT_GAME_SOURCE;
-  const onlineServerUrl = settings.gameUrl || DEFAULT_GAME_URL;
-  const key = JSON.stringify([sourcePath, onlineServerUrl, settings.gamePort]);
-  if (gameFilesServer && gameFilesServerKey === key) return gameFilesServer.url;
-  if (gameFilesServer) await gameFilesServer.close();
-  gameFilesServer = null;
-  gameFilesServerKey = '';
-  sendToShell('browser:game-status', { state: 'starting', message: 'Opening local game files with online multiplayer…' });
-  gameFilesServer = await startGameFilesServer({
-    sourcePath,
-    onlineServerUrl,
-    preferredPort: settings.gamePort || 3000
-  });
-  gameFilesServerKey = key;
-  return gameFilesServer.url;
-}
-
 async function launchGame() {
   try {
-    const url = await ensureGameFiles();
+    const url = store.snapshot().settings.gameUrl || DEFAULT_GAME_URL;
+    sendToShell('browser:game-status', { state: 'starting', message: 'Opening Jim\'s Mowing online…' });
     const tab = createTab({ url, space: activeSpace, activate: true });
-    sendToShell('browser:game-status', { state: 'ready', message: 'Local game files opened with Railway multiplayer.' });
+    sendToShell('browser:game-status', { state: 'ready', message: 'Jim\'s Mowing opened in Canopy.' });
     return { ok: true, tab };
   } catch (error) {
     sendToShell('browser:game-status', { state: 'error', message: error.message });
@@ -501,7 +484,6 @@ app.on('activate', () => {
 app.on('before-quit', () => {
   clearTimeout(saveTabsTimer);
   store?.update({ windowBounds: currentWindowBounds() }, { immediate: true });
-  gameFilesServer?.close();
 });
 
 app.on('window-all-closed', () => {
