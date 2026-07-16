@@ -26,3 +26,20 @@ test('browser settings persist locally with safe defaults and validation', () =>
   assert.deepEqual(reloaded.tabs.map(tab => tab.id), ['one']);
   fs.rmSync(directory, { recursive: true, force: true });
 });
+
+test('retired default game server migrates without replacing custom servers', () => {
+  const retiredDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'canopy-store-retired-'));
+  fs.writeFileSync(path.join(retiredDirectory, 'canopy-state.json'), JSON.stringify({
+    settings: { gameUrl: 'https://jim.up.railway.app' }
+  }));
+  assert.equal(new CanopyStore(retiredDirectory).snapshot().settings.gameUrl, DEFAULT_GAME_URL);
+
+  const customDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'canopy-store-custom-'));
+  fs.writeFileSync(path.join(customDirectory, 'canopy-state.json'), JSON.stringify({
+    settings: { gameUrl: 'https://custom.example.com' }
+  }));
+  assert.equal(new CanopyStore(customDirectory).snapshot().settings.gameUrl, 'https://custom.example.com');
+
+  fs.rmSync(retiredDirectory, { recursive: true, force: true });
+  fs.rmSync(customDirectory, { recursive: true, force: true });
+});

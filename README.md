@@ -30,7 +30,7 @@ Unsigned local builds work normally. Public distribution requires an Apple Devel
 
 ## Jim's Mowing sources
 
-- Online multiplayer server: `https://jim.up.railway.app`
+- Online multiplayer server: `https://jimsmowingandlawncare.up.railway.app`
 - Local source default: `/Users/jherbig/Documents/GitHub/fpsshooterserver`
 
 Canopy does not modify, copy, or execute the game repository's server code. It serves only the checkout's public client files on `127.0.0.1`, rewrites the WebSocket destination in memory, and connects gameplay to Railway. No Railway hosting change is required while the server continues accepting WebSocket clients from the local Canopy origin.

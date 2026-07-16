@@ -23,7 +23,7 @@ test('Canopy exposes spatial browsing and keeps the game internal', async () => 
   await expect(internal).not.toHaveAttribute('open', '');
   await internal.locator('summary').click();
   await expect(window.getByText("Jim's Mowing", { exact: true })).toBeVisible();
-  await expect(window.locator('label').filter({ hasText: 'Online multiplayer server' }).locator('input')).toHaveValue('https://jim.up.railway.app');
+  await expect(window.locator('label').filter({ hasText: 'Online multiplayer server' }).locator('input')).toHaveValue('https://jimsmowingandlawncare.up.railway.app');
 
   await window.screenshot({ path: path.resolve(__dirname, '../test-results/canopy-settings.png'), animations: 'disabled' });
   await window.getByRole('button', { name: 'Open game files' }).click();
@@ -41,7 +41,7 @@ test('Canopy exposes spatial browsing and keeps the game internal', async () => 
   }), { timeout: 20_000 }).toMatchObject({
     ready: 'complete',
     title: "Jim's Mowing and Lawn Care",
-    socketUrl: 'wss://jim.up.railway.app/'
+    socketUrl: 'wss://jimsmowingandlawncare.up.railway.app/'
   });
 
   const gameCapture = await app.evaluate(async ({ webContents }) => {

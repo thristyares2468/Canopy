@@ -46,7 +46,7 @@ const initialState = {
     theme: 'system',
     sidebarCollapsed: false,
     activeSpace: 'personal',
-    gameUrl: 'https://jim.up.railway.app',
+    gameUrl: 'https://jimsmowingandlawncare.up.railway.app',
     gameSourcePath: '/Users/jherbig/Documents/GitHub/fpsshooterserver',
     gamePort: 3000,
     restoreTabs: true

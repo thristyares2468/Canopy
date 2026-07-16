@@ -18,7 +18,7 @@ test('hostnames and localhost resolve as navigable URLs', () => {
   assert.equal(resolveAddress('localhost:3000/game'), 'http://localhost:3000/game');
   assert.equal(resolveAddress('127.0.0.1:3000'), 'http://127.0.0.1:3000/');
   assert.equal(isLocalHost('localhost:3000'), true);
-  assert.equal(looksLikeHost('jim.up.railway.app'), true);
+  assert.equal(looksLikeHost('jimsmowingandlawncare.up.railway.app'), true);
 });
 
 test('unsafe protocols are never treated as browser navigation', () => {
@@ -31,5 +31,5 @@ test('unsafe protocols are never treated as browser navigation', () => {
 test('display addresses remain compact and internal pages stay private', () => {
   assert.equal(displayAddress('https://example.com/path?q=1'), 'example.com/path?q=1');
   assert.equal(displayAddress('file:///Applications/Canopy/newtab.html'), '');
-  assert.equal(originMatches('https://jim.up.railway.app/login', 'https://jim.up.railway.app'), true);
+  assert.equal(originMatches('https://jimsmowingandlawncare.up.railway.app/login', 'https://jimsmowingandlawncare.up.railway.app'), true);
 });
