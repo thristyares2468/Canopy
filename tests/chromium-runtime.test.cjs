@@ -37,21 +37,38 @@ test('loads the Canopy extension and requested startup page', () => {
   assert.match(read('scripts/build-mac-app.sh'), /https:\/\/mystandrews\.saac\.qld\.edu\.au\//);
 });
 
-test('extension provides spaces, gestures, privacy controls, and nested internal pages', () => {
+test('extension provides the Arc-style workspace layer and nested internal pages', () => {
   const manifest = JSON.parse(read('extension/manifest.json'));
   assert.equal(manifest.manifest_version, 3);
   assert.ok(manifest.permissions.includes('tabGroups'));
   assert.ok(manifest.permissions.includes('sidePanel'));
   assert.ok(manifest.permissions.includes('contentSettings'));
+  assert.ok(manifest.permissions.includes('history'));
+  assert.ok(manifest.permissions.includes('alarms'));
+  assert.equal(manifest.chrome_url_overrides.newtab, 'newtab.html');
   assert.equal(manifest.commands._execute_side_panel.description, 'Open the Canopy sidebar');
-  assert.match(read('extension/gestures.js'), /event\.isTrusted/);
-  assert.match(read('extension/background.js'), /https:\/\/\*\.google\.com\/\*/);
+  const gestures = read('extension/gestures.js');
+  assert.match(gestures, /event\.isTrusted/);
+  assert.match(gestures, /deltaX/);
+  assert.match(gestures, /cycleSpace/);
+  assert.equal(manifest.background.service_worker, 'background-v3.js');
+  assert.match(read('extension/background-v3.js'), /https:\/\/\*\.google\.com\/\*/);
+  assert.match(read('extension/background-v3.js'), /autoArchiveTabs/);
+  assert.match(read('extension/background-v3.js'), /apiVersion: 3/);
+  assert.match(read('extension/background-v3.js'), /routeTab/);
+  assert.match(read('extension/background-v3.js'), /openPeek/);
   const panel = read('extension/sidepanel.html');
+  assert.match(panel, /FAVORITES[\s\S]*PINNED[\s\S]*TODAY/);
+  assert.match(panel, /id="space-dots"/);
+  assert.match(panel, /Air Traffic Control/);
   assert.match(panel, /Developer options[\s\S]*Internal pages[\s\S]*Jim's Mowing/);
+  assert.match(read('extension/newtab.html'), /Canopy Command Bar/);
+  assert.match(read('extension/newtab.js'), /deltaX/);
+  assert.match(read('extension/sidepanel.js'), /cycleSpace/);
 });
 
 test('internal Chromium pages use privileged background routes', () => {
   assert.match(read('extension/sidepanel.js'), /openContentSettings/);
-  assert.match(read('extension/background.js'), /chrome:\/\/settings\/content\/location/);
-  assert.match(read('extension/background.js'), /chrome:\/\/downloads\//);
+  assert.match(read('extension/background-v3.js'), /chrome:\/\/settings\/content\/location/);
+  assert.match(read('extension/background-v3.js'), /chrome:\/\/downloads\//);
 });

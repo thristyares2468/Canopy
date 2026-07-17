@@ -10,6 +10,7 @@ const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 const referencedFiles = [
   manifest.background?.service_worker,
   manifest.side_panel?.default_path,
+  manifest.chrome_url_overrides?.newtab,
   ...manifest.content_scripts.flatMap(script => script.js || [])
 ].filter(Boolean);
 
@@ -18,6 +19,8 @@ for (const file of referencedFiles) await access(path.join(root, 'extension', fi
 if (manifest.manifest_version !== 3) throw new Error('Canopy must use Manifest V3.');
 if (!manifest.permissions.includes('sidePanel')) throw new Error('The side-panel permission is required.');
 if (!manifest.permissions.includes('tabGroups')) throw new Error('The tab-groups permission is required.');
+if (!manifest.permissions.includes('history')) throw new Error('The Command Bar requires the history permission.');
+if (!manifest.chrome_url_overrides?.newtab) throw new Error('Canopy must provide its Command Bar on new tabs.');
 for (const [name, command] of Object.entries(manifest.commands || {})) {
   if (!command.description?.trim()) throw new Error(`Command ${name} requires a description.`);
 }

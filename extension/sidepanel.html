@@ -7,48 +7,105 @@
   <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
-  <div class="app-shell">
+  <div class="app-shell" id="browser-view">
     <header class="sidebar-header">
       <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><strong>Canopy</strong></div>
+      <button class="icon-button" id="favorite-current" type="button" aria-label="Add current page to Favorites" title="Add to Favorites">☆</button>
+      <button class="icon-button" id="capture-button" type="button" aria-label="Capture visible page" title="Capture visible page">▣</button>
       <button class="icon-button" id="settings-button" type="button" aria-label="Settings" title="Settings">⚙</button>
     </header>
 
     <form class="address-form" id="address-form">
       <span aria-hidden="true">⌕</span>
       <input id="address-input" autocomplete="off" placeholder="Search or enter address" aria-label="Search or enter address">
+      <kbd>⌘ T</kbd>
     </form>
+
+    <section class="favorites-section" aria-labelledby="favorites-heading">
+      <div class="section-heading"><span id="favorites-heading">FAVORITES</span><small id="favorite-count">0 / 12</small></div>
+      <div class="favorites-grid" id="favorites-list"></div>
+    </section>
 
     <div class="space-bar">
       <span>SPACES</span>
-      <button class="icon-button" id="add-space-button" type="button" aria-label="Create space" title="Create space">+</button>
+      <button class="icon-button small" id="add-space-button" type="button" aria-label="Create Space" title="Create Space">+</button>
     </div>
     <nav class="space-list" id="space-list" aria-label="Spaces"></nav>
-    <div class="divider"></div>
-    <div class="tab-heading"><strong id="active-space-name">Personal</strong><span id="tab-count">0 tabs</span></div>
-    <main class="tab-list" id="tab-list" aria-live="polite"></main>
+
+    <div class="active-space-heading">
+      <div><span class="space-icon" id="active-space-icon">●</span><strong id="active-space-name">Personal</strong></div>
+      <div class="heading-actions">
+        <button class="icon-button small" id="add-folder-button" type="button" aria-label="New folder" title="New folder">▤</button>
+        <button class="icon-button small" id="share-space-button" type="button" aria-label="Share Space" title="Copy Space links">↗</button>
+      </div>
+    </div>
+
+    <main class="workspace-list" id="workspace-list" aria-live="polite">
+      <section class="pinned-section" id="pinned-section">
+        <div class="section-heading"><span>PINNED</span><small id="pinned-count">0</small></div>
+        <div id="pinned-list"></div>
+      </section>
+      <section class="today-section">
+        <div class="section-heading"><span>TODAY</span><small id="tab-count">0 tabs</small></div>
+        <div class="tab-list" id="tab-list"></div>
+      </section>
+    </main>
+
+    <section class="media-dock" id="media-dock" hidden aria-label="Playing media"></section>
 
     <footer class="sidebar-footer">
-      <button id="new-tab-button" type="button"><span aria-hidden="true">＋</span>New tab</button>
-      <span class="shortcut">⌘ T</span>
+      <button id="library-button" type="button" aria-label="Library" title="Library"><span aria-hidden="true">◫</span></button>
+      <nav class="space-dots" id="space-dots" aria-label="Switch Space"></nav>
+      <button id="new-tab-button" class="new-tab" type="button" aria-label="New tab" title="New tab"><span aria-hidden="true">＋</span></button>
     </footer>
   </div>
 
-  <dialog id="space-dialog" class="space-dialog">
+  <section class="overlay-view library-view" id="library-view" hidden aria-label="Library">
+    <header class="overlay-header">
+      <button class="icon-button" id="close-library" type="button" aria-label="Close Library">‹</button>
+      <div><strong>Library</strong><span>Archive and captures</span></div>
+      <button class="secondary-button compact-button" id="clear-archive-button" type="button">Clear archive</button>
+    </header>
+    <nav class="view-tabs" id="library-tabs">
+      <button class="active" data-library="archive">Archive</button>
+      <button data-library="captures">Captures</button>
+    </nav>
+    <div class="library-content">
+      <div class="library-panel active" data-library-panel="archive" id="archive-list"></div>
+      <div class="library-panel" data-library-panel="captures" id="capture-list"></div>
+    </div>
+  </section>
+
+  <dialog id="space-dialog" class="modal-dialog">
     <form id="space-form" method="dialog">
-      <header><strong>New space</strong><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
+      <header><strong>New Space</strong><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
       <label>NAME<input id="space-name" maxlength="28" autocomplete="off" placeholder="Space name"></label>
+      <fieldset><legend>ICON</legend><div class="icon-options" id="icon-options"></div></fieldset>
       <fieldset><legend>COLOR</legend><div class="color-options" id="color-options"></div></fieldset>
       <p class="form-message" id="space-message"></p>
-      <button class="primary-button" id="create-space-button" value="default">Create space</button>
+      <button class="primary-button" id="create-space-button" value="default">Create Space</button>
     </form>
   </dialog>
 
-  <section class="settings-view" id="settings-view" hidden aria-label="Canopy settings">
-    <header class="settings-header"><button class="icon-button" id="close-settings" type="button" aria-label="Close settings">‹</button><div><strong>Settings</strong><span>Canopy</span></div></header>
+  <dialog id="folder-dialog" class="modal-dialog">
+    <form id="folder-form" method="dialog">
+      <header><strong>New folder</strong><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
+      <label>NAME<input id="folder-name" maxlength="40" autocomplete="off" placeholder="Folder name"></label>
+      <p class="form-message" id="folder-message"></p>
+      <button class="primary-button" value="default">Create folder</button>
+    </form>
+  </dialog>
+
+  <section class="overlay-view settings-view" id="settings-view" hidden aria-label="Canopy settings">
+    <header class="overlay-header settings-header">
+      <button class="icon-button" id="close-settings" type="button" aria-label="Close settings">‹</button>
+      <div><strong>Settings</strong><span>Canopy</span></div>
+    </header>
     <nav class="settings-nav" id="settings-nav" aria-label="Settings sections">
       <button class="active" data-section="general">General</button>
       <button data-section="appearance">Appearance</button>
-      <button data-section="spaces">Tabs & Spaces</button>
+      <button data-section="spaces">Spaces</button>
+      <button data-section="links">Links</button>
       <button data-section="privacy">Privacy</button>
       <button data-section="downloads">Downloads</button>
       <button data-section="advanced">Advanced</button>
@@ -57,7 +114,9 @@
       <div class="settings-section active" data-panel="general">
         <h1>General</h1>
         <label class="setting-row vertical"><span><strong>Home page</strong><small>Opened when Canopy starts.</small></span><input id="home-page-input"></label>
-        <div class="setting-row"><span><strong>Search engine</strong><small>Address-bar searches</small></span><b>Google</b></div>
+        <div class="setting-row"><span><strong>Search engine</strong><small>Command Bar searches</small></span><b>Google</b></div>
+        <label class="setting-row vertical"><span><strong>Auto Archive</strong><small>Close inactive Today tabs and keep them in Library.</small></span><select id="auto-archive-select"><option value="12">After 12 hours</option><option value="24">After 24 hours</option><option value="72">After 3 days</option><option value="168">After 7 days</option><option value="720">After 30 days</option><option value="0">Never</option></select></label>
+        <label class="setting-row"><span><strong>Peek for pinned links</strong><small>Open linked pages in a focused popup.</small></span><input id="peek-toggle" type="checkbox" role="switch"></label>
       </div>
       <div class="settings-section" data-panel="appearance">
         <h1>Appearance</h1>
@@ -66,23 +125,40 @@
         <label class="setting-row"><span><strong>Reduce motion</strong><small>Minimize interface animation.</small></span><input id="reduce-motion-toggle" type="checkbox" role="switch"></label>
       </div>
       <div class="settings-section" data-panel="spaces">
-        <h1>Tabs & Spaces</h1>
+        <h1>Spaces</h1>
         <label class="setting-row"><span><strong>Trackpad switching</strong><small>Swipe horizontally with two fingers.</small></span><input id="space-swipe-toggle" type="checkbox" role="switch"></label>
         <div class="managed-spaces" id="managed-spaces"></div>
+      </div>
+      <div class="settings-section" data-panel="links">
+        <h1>Air Traffic Control</h1>
+        <form class="route-form" id="route-form">
+          <label>URL RULE<input id="route-pattern" placeholder="example.com"></label>
+          <div class="route-fields"><label>MATCH<select id="route-match"><option value="host">Domain</option><option value="contains">Contains</option><option value="startsWith">Starts with</option></select></label><label>SPACE<select id="route-space"></select></label></div>
+          <p class="form-message" id="route-message"></p>
+          <button class="primary-button" type="submit">Add route</button>
+        </form>
+        <div class="route-list" id="route-list"></div>
       </div>
       <div class="settings-section" data-panel="privacy">
         <h1>Privacy</h1>
         <div class="privacy-banner"><strong>Chromium site isolation</strong><span>Active for all page content.</span></div>
         <label class="setting-row"><span><strong>Block Google location</strong><small>Silently deny Google geolocation requests.</small></span><input id="google-location-toggle" type="checkbox" role="switch"></label>
         <div class="setting-row"><span><strong>Site permissions</strong><small>Managed by Chromium.</small></span><button class="secondary-button" id="content-settings-button" type="button">Open controls</button></div>
+        <div class="setting-row"><span><strong>Browser profiles</strong><small>Separate cookies, history and logins.</small></span><button class="secondary-button" id="profiles-button" type="button">Manage</button></div>
+        <div class="setting-row"><span><strong>Passwords and passkeys</strong><small>Chromium password manager.</small></span><button class="secondary-button" id="passwords-button" type="button">Open</button></div>
       </div>
       <div class="settings-section" data-panel="downloads">
-        <h1>Downloads</h1>
-        <div class="setting-row"><span><strong>Downloads</strong><small>Review downloaded files.</small></span><button class="secondary-button" id="downloads-button" type="button">Open downloads</button></div>
+        <h1>Downloads & Library</h1>
+        <div class="setting-row"><span><strong>Downloads</strong><small>Review downloaded files.</small></span><button class="secondary-button" id="downloads-button" type="button">Open</button></div>
+        <div class="setting-row"><span><strong>History</strong><small>Browse Chromium history.</small></span><button class="secondary-button" id="history-button" type="button">Open</button></div>
       </div>
       <div class="settings-section" data-panel="advanced">
         <h1>Advanced</h1>
-        <div class="setting-row"><span><strong>Chromium runtime</strong><small>Native Chromium browser process</small></span><b>Active</b></div>
+        <div class="setting-row"><span><strong>Chrome extensions</strong><small>Manage installed extensions.</small></span><button class="secondary-button" id="extensions-button" type="button">Open</button></div>
+        <div class="setting-row"><span><strong>Import browser data</strong><small>Bookmarks, history, and saved data.</small></span><button class="secondary-button" id="import-data-button" type="button">Import</button></div>
+        <div class="setting-row"><span><strong>Performance</strong><small>Memory Saver and Chromium performance controls.</small></span><button class="secondary-button" id="performance-button" type="button">Open</button></div>
+        <div class="setting-row"><span><strong>Workspace backup</strong><small>Move Canopy Spaces between installations.</small></span><span class="button-pair"><button class="secondary-button" id="export-workspace-button" type="button">Export</button><button class="secondary-button" id="import-workspace-button" type="button">Restore</button></span><input id="import-workspace-file" type="file" accept="application/json,.json" hidden></div>
+        <div class="setting-row"><span><strong>Chromium runtime</strong><small>Native browser process</small></span><b>Active</b></div>
         <details class="developer-options">
           <summary>Developer options <span>⌄</span></summary>
           <div class="developer-content">

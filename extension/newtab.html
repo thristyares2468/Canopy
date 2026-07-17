@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New Tab</title>
+  <link rel="stylesheet" href="newtab.css">
+</head>
+<body>
+  <main class="newtab-shell">
+    <header class="newtab-header">
+      <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><strong>Canopy</strong></div>
+      <div class="active-space" id="active-space"><span>●</span><strong>Personal</strong></div>
+      <button class="icon-button" id="sidebar-button" type="button" title="Open Canopy sidebar" aria-label="Open Canopy sidebar">☰</button>
+    </header>
+
+    <section class="command-area">
+      <div class="time" id="time">9:41</div>
+      <form class="command-bar" id="command-form">
+        <span aria-hidden="true">⌕</span>
+        <input id="command-input" autocomplete="off" autofocus placeholder="Search, open a tab, or run a command" aria-label="Canopy Command Bar">
+        <kbd>⌘ T</kbd>
+      </form>
+      <div class="command-results" id="command-results" hidden></div>
+    </section>
+
+    <section class="dashboard">
+      <div class="dashboard-section favorites-panel">
+        <header><span>FAVORITES</span><small id="favorite-count">0 / 12</small></header>
+        <div class="favorite-grid" id="favorite-grid"></div>
+      </div>
+
+      <div class="dashboard-section spaces-panel">
+        <header><span>SPACES</span><small>⌃ swipe to move</small></header>
+        <div class="space-grid" id="space-grid"></div>
+      </div>
+
+      <div class="dashboard-section archive-panel">
+        <header><span>RECENTLY ARCHIVED</span><button id="library-button" type="button">Open Library</button></header>
+        <div class="archive-grid" id="archive-grid"></div>
+      </div>
+    </section>
+
+    <footer class="quick-actions">
+      <button data-command="openDownloads"><span>↓</span>Downloads</button>
+      <button data-command="openHistory"><span>↺</span>History</button>
+      <button data-command="openProfiles"><span>◉</span>Profiles</button>
+      <button data-command="openExtensions"><span>◇</span>Extensions</button>
+    </footer>
+  </main>
+
+  <script src="core.js"></script>
+  <script src="newtab.js"></script>
+</body>
+</html>
