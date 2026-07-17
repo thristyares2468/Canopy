@@ -70,7 +70,22 @@ async function currentWindowId() {
 }
 
 async function groupTabs(windowId) {
-  return (await chrome.tabGroups.query({ windowId })).sort((left, right) => left.id - right.id);
+  const [groups, tabs] = await Promise.all([
+    chrome.tabGroups.query({ windowId }),
+    chrome.tabs.query({ windowId })
+  ]);
+  const firstTabIndex = new Map();
+  for (const tab of tabs) {
+    if (tab.groupId < 0 || firstTabIndex.has(tab.groupId)) continue;
+    firstTabIndex.set(tab.groupId, tab.index);
+  }
+  const spaceOrder = new Map((await workspace()).spaces.map((space, index) => [spaceKey(space.name), index]));
+  return groups.sort((left, right) =>
+    (spaceOrder.get(spaceKey(left.title)) ?? Number.MAX_SAFE_INTEGER)
+    - (spaceOrder.get(spaceKey(right.title)) ?? Number.MAX_SAFE_INTEGER)
+    || (firstTabIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER)
+    - (firstTabIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER)
+  );
 }
 
 async function activeGroupId(windowId) {
@@ -91,7 +106,10 @@ async function ensureSpaceMetadata(groups) {
   const current = await workspace();
   const missing = groups.some(group => {
     const key = spaceKey(group.title || 'Personal');
-    return !current.spaceMeta[key] || !current.pinnedBySpace[key] || !current.foldersBySpace[key];
+    return !current.spaces.some(space => spaceKey(space.name) === key)
+      || !current.spaceMeta[key]
+      || !current.pinnedBySpace[key]
+      || !current.foldersBySpace[key];
   });
   if (!missing) return;
   await mutateWorkspace(value => {
@@ -100,6 +118,13 @@ async function ensureSpaceMetadata(groups) {
       value.spaceMeta[key] ||= { icon: 'leaf', color: group.color || 'green' };
       value.pinnedBySpace[key] ||= [];
       value.foldersBySpace[key] ||= [];
+      if (!value.spaces.some(space => spaceKey(space.name) === key)) {
+        value.spaces.push({
+          name: group.title || 'Personal',
+          icon: value.spaceMeta[key].icon,
+          color: value.spaceMeta[key].color
+        });
+      }
     }
     return { workspace: value };
   });
@@ -107,6 +132,7 @@ async function ensureSpaceMetadata(groups) {
 
 async function ensureSpaces(windowId) {
   let groups = await groupTabs(windowId);
+  let currentWorkspace = await workspace();
   if (!groups.length) {
     let tabs = (await chrome.tabs.query({ windowId })).filter(tab => tab.id && !tab.pinned);
     if (!tabs.length) {
@@ -114,11 +140,28 @@ async function ensureSpaces(windowId) {
       tabs = [tab];
     }
     const groupId = await chrome.tabs.group({ tabIds: tabs.map(tab => tab.id) });
-    await chrome.tabGroups.update(groupId, { title: 'Personal', color: 'green', collapsed: false });
+    const firstSpace = currentWorkspace.spaces[0] || { name: 'Personal', color: 'green' };
+    await chrome.tabGroups.update(groupId, { title: firstSpace.name, color: firstSpace.color, collapsed: false });
     await rememberActiveGroup(windowId, groupId);
     groups = await groupTabs(windowId);
   }
   await ensureSpaceMetadata(groups);
+  currentWorkspace = await workspace();
+  const existingKeys = new Set(groups.map(group => spaceKey(group.title)));
+  const missingSpaces = currentWorkspace.spaces.filter(space => !existingKeys.has(spaceKey(space.name)));
+  if (missingSpaces.length) {
+    creatingSpaceWindows.add(windowId);
+    try {
+      for (const space of missingSpaces) {
+        const tab = await chrome.tabs.create({ windowId, url: 'chrome://newtab/', active: false });
+        const groupId = await chrome.tabs.group({ tabIds: [tab.id] });
+        await chrome.tabGroups.update(groupId, { title: space.name, color: space.color, collapsed: true });
+      }
+    } finally {
+      creatingSpaceWindows.delete(windowId);
+    }
+    groups = await groupTabs(windowId);
+  }
   return groups;
 }
 
@@ -161,6 +204,7 @@ async function createSpace(windowId, payload = {}) {
       current.spaceMeta[key] = { icon, color };
       current.pinnedBySpace[key] ||= [];
       current.foldersBySpace[key] ||= [];
+      current.spaces.push({ name, icon, color });
       return { workspace: current };
     });
     await switchSpace(windowId, groupId);
@@ -190,6 +234,8 @@ async function updateSpace(windowId, payload = {}) {
     current.spaceMeta[nextKey] = { ...(current.spaceMeta[oldKey] || {}), icon, color };
     current.pinnedBySpace[nextKey] = current.pinnedBySpace[oldKey] || [];
     current.foldersBySpace[nextKey] = current.foldersBySpace[oldKey] || [];
+    const definition = current.spaces.find(space => spaceKey(space.name) === oldKey);
+    if (definition) Object.assign(definition, { name, icon, color });
     if (oldKey !== nextKey) {
       delete current.spaceMeta[oldKey];
       delete current.pinnedBySpace[oldKey];
@@ -222,6 +268,7 @@ async function deleteSpace(windowId, groupId) {
     delete current.pinnedBySpace[removedKey];
     delete current.foldersBySpace[removedKey];
     delete current.spaceMeta[removedKey];
+    current.spaces = current.spaces.filter(space => spaceKey(space.name) !== removedKey);
     for (const route of current.routes) if (spaceKey(route.spaceName) === removedKey) route.spaceName = fallback.title;
     return { workspace: current };
   });
@@ -672,7 +719,7 @@ async function initializeExtension() {
 async function exportWorkspaceData() {
   const payload = {
     format: 'canopy-workspace',
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     settings: await settings(),
     workspace: await workspace()

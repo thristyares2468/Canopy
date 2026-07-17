@@ -1,0 +1,8 @@
+Canopy's native browser shell is built against the Chromium Embedded Framework
+(CEF). CEF and the cef-project starter files are distributed under the BSD
+3-Clause license. The full upstream license is available at:
+
+https://github.com/chromiumembedded/cef/blob/master/LICENSE.txt
+
+Canopy source files in this directory are project code. CEF binaries are
+downloaded at build time and are not committed to this repository.

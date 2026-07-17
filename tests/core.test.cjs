@@ -46,6 +46,23 @@ test('normalizes persistent workspace data and preserves folder assignments', ()
   assert.equal(workspace.pinnedBySpace.personal[0].folderId, 'folder-one');
   assert.equal(workspace.foldersBySpace.personal[0].name, 'Research');
   assert.deepEqual(workspace.spaceMeta.personal, { icon: 'book', color: 'blue' });
+  assert.deepEqual(workspace.spaces, [{ name: 'Personal', icon: 'book', color: 'blue' }]);
+  assert.equal(workspace.version, 2);
+});
+
+test('preserves ordered Space definitions and migrates legacy Space metadata', () => {
+  const ordered = core.normalizeWorkspace({
+    spaces: [
+      { name: 'Study', icon: 'book', color: 'blue' },
+      { name: 'Personal', icon: 'home', color: 'green' }
+    ]
+  });
+  assert.deepEqual(ordered.spaces.map(space => space.name), ['Study', 'Personal']);
+
+  const legacy = core.normalizeWorkspace({
+    spaceMeta: { personal: { icon: 'leaf', color: 'green' }, study: { icon: 'book', color: 'blue' } }
+  });
+  assert.deepEqual(legacy.spaces.map(space => space.name), ['Personal', 'Study']);
 });
 
 test('matches Air Traffic Control routes by domain, prefix, and substring', () => {

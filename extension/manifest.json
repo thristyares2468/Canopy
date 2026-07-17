@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Canopy",
   "description": "A spatial Chromium workspace with Spaces, Favorites, archives, and private Canopy settings.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "minimum_chrome_version": "116",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAs7ZNkZeucxw4hMRhi3VAe+w154FmlXhXu2bEEL1T1ysqROOWYBDEanjcZj5k41DPprumeWt5U1o5bnrgbjamFpXUOZjSlIyMPZN7/hgB0Oi8YVTXyYgV8CIqBr0T9rSHjfvwEAoebKpX4t8Fz0GMVT62tAQ1KJEiVcM2OBShVe3rfgAJwRhiqHC4haESTko+vMCmsjcOppN5eDCl2nooxyC0Y8/gvGb7KQxgJNtUZmBuOycgCIw8MO7WS8H3aEFHGqNrcAw07VXunNmBtLUQORsHtArldvDZc4I6t/eg0f7TjRqTxqWeDcL5INo07Sv75yNcV29NfKMOUNCy5Ou4kwIDAQAB",
   "permissions": [
@@ -49,7 +49,7 @@
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["gestures.js", "page-actions.js"],
+      "js": ["page-actions.js"],
       "run_at": "document_start",
       "all_frames": false
     }

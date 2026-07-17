@@ -4,5 +4,6 @@ runtime/
 release/
 test-results/
 playwright-report/
+.native-build/
 *.log
 .DS_Store

@@ -26,38 +26,40 @@
       <div class="favorites-grid" id="favorites-list"></div>
     </section>
 
-    <div class="space-bar">
-      <span>SPACES</span>
-      <button class="icon-button small" id="add-space-button" type="button" aria-label="Create Space" title="Create Space">+</button>
-    </div>
-    <nav class="space-list" id="space-list" aria-label="Spaces"></nav>
-
-    <div class="active-space-heading">
-      <div><span class="space-icon" id="active-space-icon">●</span><strong id="active-space-name">Personal</strong></div>
-      <div class="heading-actions">
-        <button class="icon-button small" id="add-folder-button" type="button" aria-label="New folder" title="New folder">▤</button>
-        <button class="icon-button small" id="share-space-button" type="button" aria-label="Share Space" title="Copy Space links">↗</button>
+    <section class="space-stage" id="space-stage" aria-live="polite">
+      <div class="active-space-heading">
+        <div><span class="space-icon" id="active-space-icon">●</span><strong id="active-space-name">Personal</strong></div>
+        <div class="heading-actions">
+          <button class="icon-button small" id="edit-space-button" type="button" aria-label="Edit current Space" title="Edit Space">•••</button>
+          <button class="icon-button small" id="share-space-button" type="button" aria-label="Share Space" title="Copy Space links">↗</button>
+        </div>
       </div>
-    </div>
 
-    <main class="workspace-list" id="workspace-list" aria-live="polite">
-      <section class="pinned-section" id="pinned-section">
-        <div class="section-heading"><span>PINNED</span><small id="pinned-count">0</small></div>
-        <div id="pinned-list"></div>
-      </section>
-      <section class="today-section">
-        <div class="section-heading"><span>TODAY</span><small id="tab-count">0 tabs</small></div>
-        <div class="tab-list" id="tab-list"></div>
-      </section>
-    </main>
+      <main class="workspace-list" id="workspace-list">
+        <section class="pinned-section" id="pinned-section">
+          <div class="section-heading"><span>PINNED</span><small id="pinned-count">0</small></div>
+          <div id="pinned-list"></div>
+        </section>
+        <section class="today-section">
+          <div class="section-heading"><span>TODAY</span><small id="tab-count">0 tabs</small></div>
+          <div class="tab-list" id="tab-list"></div>
+        </section>
+      </main>
+    </section>
 
     <section class="media-dock" id="media-dock" hidden aria-label="Playing media"></section>
 
     <footer class="sidebar-footer">
       <button id="library-button" type="button" aria-label="Library" title="Library"><span aria-hidden="true">◫</span></button>
       <nav class="space-dots" id="space-dots" aria-label="Switch Space"></nav>
-      <button id="new-tab-button" class="new-tab" type="button" aria-label="New tab" title="New tab"><span aria-hidden="true">＋</span></button>
+      <button id="create-menu-button" class="new-tab" type="button" aria-label="Create" title="New tab, folder, or Space" aria-expanded="false"><span aria-hidden="true">＋</span></button>
     </footer>
+
+    <div class="create-menu" id="create-menu" hidden>
+      <button id="new-tab-button" type="button"><span>＋</span><span><strong>New tab</strong><small>Open in this Space</small></span><kbd>⌘T</kbd></button>
+      <button id="add-folder-button" type="button"><span>▤</span><span><strong>New folder</strong><small>Organize pinned pages</small></span></button>
+      <button id="add-space-button" type="button"><span>◎</span><span><strong>New Space</strong><small>Start a separate context</small></span></button>
+    </div>
   </div>
 
   <section class="overlay-view library-view" id="library-view" hidden aria-label="Library">
@@ -105,6 +107,7 @@
       <button class="active" data-section="general">General</button>
       <button data-section="appearance">Appearance</button>
       <button data-section="spaces">Spaces</button>
+      <button data-section="jims">Jim's Mowing</button>
       <button data-section="links">Links</button>
       <button data-section="privacy">Privacy</button>
       <button data-section="downloads">Downloads</button>
@@ -128,6 +131,20 @@
         <h1>Spaces</h1>
         <label class="setting-row"><span><strong>Trackpad switching</strong><small>Swipe horizontally with two fingers.</small></span><input id="space-swipe-toggle" type="checkbox" role="switch"></label>
         <div class="managed-spaces" id="managed-spaces"></div>
+      </div>
+      <div class="settings-section game-settings" data-panel="jims">
+        <h1>Jim's Mowing</h1>
+        <p class="settings-intro">The embedded multiplayer game runs from its public Railway server, so login and online matches use the same live service as the standalone site.</p>
+        <div class="game-frame-shell">
+          <div class="game-frame-placeholder" id="game-frame-placeholder"><span>JM</span><strong>Jim's Mowing</strong><small>Load the game inside Canopy</small></div>
+          <iframe id="game-frame" title="Jim's Mowing embedded game" allow="autoplay; fullscreen; gamepad; microphone; clipboard-read; clipboard-write" allowfullscreen hidden></iframe>
+        </div>
+        <div class="game-toolbar">
+          <button class="primary-button" id="load-game-button" type="button">Load embedded game</button>
+          <button class="secondary-button" id="reload-game-button" type="button">Reload</button>
+          <button class="secondary-button" id="open-game-button" type="button">Open full size</button>
+        </div>
+        <label class="setting-row vertical"><span><strong>Online server</strong><small>The secure public game address.</small></span><input id="game-url-input"></label>
       </div>
       <div class="settings-section" data-panel="links">
         <h1>Air Traffic Control</h1>
@@ -159,19 +176,6 @@
         <div class="setting-row"><span><strong>Performance</strong><small>Memory Saver and Chromium performance controls.</small></span><button class="secondary-button" id="performance-button" type="button">Open</button></div>
         <div class="setting-row"><span><strong>Workspace backup</strong><small>Move Canopy Spaces between installations.</small></span><span class="button-pair"><button class="secondary-button" id="export-workspace-button" type="button">Export</button><button class="secondary-button" id="import-workspace-button" type="button">Restore</button></span><input id="import-workspace-file" type="file" accept="application/json,.json" hidden></div>
         <div class="setting-row"><span><strong>Chromium runtime</strong><small>Native browser process</small></span><b>Active</b></div>
-        <details class="developer-options">
-          <summary>Developer options <span>⌄</span></summary>
-          <div class="developer-content">
-            <details class="internal-pages">
-              <summary>Internal pages <span>⌄</span></summary>
-              <div class="internal-content">
-                <strong>Jim's Mowing</strong>
-                <label>ONLINE SERVER<input id="game-url-input"></label>
-                <button class="primary-button" id="open-game-button" type="button">Open Jim's Mowing</button>
-              </div>
-            </details>
-          </div>
-        </details>
       </div>
     </div>
   </section>

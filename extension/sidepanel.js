@@ -11,9 +11,12 @@ let windowId = null;
 let selectedColor = 'green';
 let selectedIcon = 'leaf';
 let refreshTimer = null;
+let spaceSwitchInFlight = false;
+let wheelDistance = 0;
+let wheelResetTimer = null;
 
 const elementIds = [
-  'browser-view', 'space-list', 'tab-list', 'pinned-list', 'pinned-section', 'pinned-count',
+  'browser-view', 'space-stage', 'tab-list', 'pinned-list', 'pinned-section', 'pinned-count',
   'space-dots',
   'active-space-name', 'active-space-icon', 'tab-count', 'address-form', 'address-input',
   'space-dialog', 'space-form', 'space-name', 'space-message', 'color-options', 'icon-options',
@@ -22,8 +25,9 @@ const elementIds = [
   'peek-toggle', 'compact-tabs-toggle', 'reduce-motion-toggle', 'space-swipe-toggle',
   'google-location-toggle', 'theme-control', 'downloads-button', 'history-button', 'profiles-button',
   'passwords-button', 'extensions-button', 'import-data-button', 'performance-button', 'export-workspace-button',
-  'import-workspace-button', 'import-workspace-file', 'content-settings-button', 'game-url-input', 'open-game-button', 'new-tab-button',
-  'add-space-button', 'add-folder-button', 'share-space-button', 'favorite-current', 'favorite-count',
+  'import-workspace-button', 'import-workspace-file', 'content-settings-button', 'game-url-input', 'open-game-button', 'load-game-button',
+  'reload-game-button', 'game-frame', 'game-frame-placeholder', 'new-tab-button', 'create-menu-button', 'create-menu',
+  'add-space-button', 'add-folder-button', 'edit-space-button', 'share-space-button', 'favorite-current', 'favorite-count',
   'favorites-list', 'capture-button', 'media-dock', 'library-button', 'library-view', 'close-library',
   'library-tabs', 'archive-list', 'capture-list', 'clear-archive-button', 'route-form', 'route-pattern',
   'route-match', 'route-space', 'route-message', 'route-list', 'toast'
@@ -46,6 +50,70 @@ function showToast(message) {
   elements.toast.hidden = false;
   clearTimeout(showToast.timer);
   showToast.timer = setTimeout(() => { elements.toast.hidden = true; }, 2200);
+}
+
+function wait(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+function setCreateMenu(open) {
+  elements['create-menu'].hidden = !open;
+  elements['create-menu-button'].setAttribute('aria-expanded', String(open));
+}
+
+function showSettingsSection(section = 'general') {
+  elements['settings-view'].hidden = false;
+  for (const item of elements['settings-nav'].querySelectorAll('button')) {
+    item.classList.toggle('active', item.dataset.section === section);
+  }
+  for (const panel of document.querySelectorAll('[data-panel]')) {
+    panel.classList.toggle('active', panel.dataset.panel === section);
+  }
+  setCreateMenu(false);
+  if (section === 'jims') loadEmbeddedGame();
+}
+
+function loadEmbeddedGame(force = false) {
+  const url = state?.settings?.gameUrl;
+  if (!url) return;
+  if (force || elements['game-frame'].dataset.url !== url) {
+    elements['game-frame'].src = url;
+    elements['game-frame'].dataset.url = url;
+  }
+  elements['game-frame'].hidden = false;
+  elements['game-frame-placeholder'].hidden = true;
+}
+
+function resetSpacePreview(animate = true) {
+  clearTimeout(wheelResetTimer);
+  wheelDistance = 0;
+  elements['space-stage'].classList.toggle('space-release', animate);
+  elements['space-stage'].style.removeProperty('--space-drag');
+  elements['space-stage'].style.removeProperty('--space-drag-opacity');
+  if (animate) setTimeout(() => elements['space-stage'].classList.remove('space-release'), 190);
+}
+
+async function switchSpaceAnimated(message, direction) {
+  if (spaceSwitchInFlight || state.spaces.length < 2) return;
+  spaceSwitchInFlight = true;
+  resetSpacePreview(false);
+  const stage = elements['space-stage'];
+  const leaveClass = `space-leave-${direction}`;
+  const enterClass = `space-enter-${direction}`;
+  try {
+    stage.classList.remove('space-leave-next', 'space-leave-previous', 'space-enter-next', 'space-enter-previous');
+    stage.classList.add(leaveClass);
+    await wait(state.settings.reduceMotion ? 1 : 115);
+    const changed = await request(message);
+    if (changed) await refresh();
+    stage.classList.remove(leaveClass);
+    void stage.offsetWidth;
+    if (changed) stage.classList.add(enterClass);
+    await wait(state.settings.reduceMotion ? 1 : 230);
+  } finally {
+    stage.classList.remove(leaveClass, enterClass);
+    spaceSwitchInFlight = false;
+  }
 }
 
 async function report(result, successMessage = '') {
@@ -90,10 +158,6 @@ function renderFavorites() {
 }
 
 function renderSpaces() {
-  elements['space-list'].innerHTML = state.spaces.map(space => `
-    <button class="space-button${space.id === state.activeGroupId ? ' active' : ''}" data-space-id="${space.id}" style="--space-color:${COLOR_VALUES[space.color] || COLOR_VALUES.grey}">
-      <span class="space-icon">${ICON_VALUES[space.icon] || ICON_VALUES.leaf}</span><span>${escapeText(space.name)}</span>
-    </button>`).join('');
   const space = activeSpace();
   document.documentElement.style.setProperty('--active-space-color', COLOR_VALUES[space?.color] || COLOR_VALUES.green);
   elements['active-space-name'].textContent = space?.name || 'Space';
@@ -243,6 +307,7 @@ async function refresh() {
 }
 
 function queueRefresh() {
+  if (spaceSwitchInFlight) return;
   clearTimeout(refreshTimer);
   refreshTimer = setTimeout(() => refresh().catch(() => {}), 90);
 }
@@ -271,15 +336,27 @@ elements['address-form'].addEventListener('submit', async event => {
   event.preventDefault();
   if (await request({ type: 'openUrl', value: elements['address-input'].value })) elements['address-input'].value = '';
 });
-elements['new-tab-button'].addEventListener('click', () => request({ type: 'openNewTab' }));
-elements['add-space-button'].addEventListener('click', openSpaceDialog);
-elements['space-list'].addEventListener('click', event => {
-  const button = event.target.closest('[data-space-id]');
-  if (button) request({ type: 'switchSpace', groupId: Number(button.dataset.spaceId) });
+elements['create-menu-button'].addEventListener('click', event => {
+  event.stopPropagation();
+  setCreateMenu(elements['create-menu'].hidden);
+});
+elements['create-menu'].addEventListener('click', event => event.stopPropagation());
+elements['new-tab-button'].addEventListener('click', () => {
+  setCreateMenu(false);
+  request({ type: 'openNewTab' });
+});
+elements['add-space-button'].addEventListener('click', () => {
+  setCreateMenu(false);
+  openSpaceDialog();
 });
 elements['space-dots'].addEventListener('click', event => {
   const button = event.target.closest('[data-space-dot]');
-  if (button) request({ type: 'switchSpace', groupId: Number(button.dataset.spaceDot) });
+  if (!button) return;
+  const targetId = Number(button.dataset.spaceDot);
+  const activeIndex = state.spaces.findIndex(space => space.id === state.activeGroupId);
+  const targetIndex = state.spaces.findIndex(space => space.id === targetId);
+  if (targetIndex < 0 || targetIndex === activeIndex) return;
+  switchSpaceAnimated({ type: 'switchSpace', groupId: targetId }, targetIndex > activeIndex ? 'next' : 'previous');
 });
 
 elements['favorites-list'].addEventListener('click', async event => {
@@ -329,11 +406,13 @@ elements['pinned-list'].addEventListener('change', event => {
 });
 
 elements['add-folder-button'].addEventListener('click', () => {
+  setCreateMenu(false);
   elements['folder-name'].value = '';
   elements['folder-message'].textContent = '';
   elements['folder-dialog'].showModal();
   elements['folder-name'].focus();
 });
+elements['edit-space-button'].addEventListener('click', () => showSettingsSection('spaces'));
 elements['folder-form'].addEventListener('submit', async event => {
   event.preventDefault();
   const result = await request({ type: 'createFolder', spaceName: activeSpace().name, name: elements['folder-name'].value });
@@ -390,13 +469,12 @@ elements['archive-list'].addEventListener('click', async event => {
 elements['clear-archive-button'].addEventListener('click', () => request({ type: 'clearArchive' }));
 elements['capture-list'].addEventListener('click', () => request({ type: 'openDownloads' }));
 
-elements['settings-button'].addEventListener('click', () => { elements['settings-view'].hidden = false; });
+elements['settings-button'].addEventListener('click', () => showSettingsSection('general'));
 elements['close-settings'].addEventListener('click', () => { elements['settings-view'].hidden = true; });
 elements['settings-nav'].addEventListener('click', event => {
   const button = event.target.closest('[data-section]');
   if (!button) return;
-  for (const item of elements['settings-nav'].querySelectorAll('button')) item.classList.toggle('active', item === button);
-  for (const panel of document.querySelectorAll('[data-panel]')) panel.classList.toggle('active', panel.dataset.panel === button.dataset.section);
+  showSettingsSection(button.dataset.section);
 });
 
 elements['managed-spaces'].addEventListener('click', async event => {
@@ -430,7 +508,13 @@ elements['route-list'].addEventListener('click', event => {
 });
 
 elements['home-page-input'].addEventListener('change', event => saveSetting({ homePage: event.target.value }));
-elements['game-url-input'].addEventListener('change', event => saveSetting({ gameUrl: event.target.value }));
+elements['game-url-input'].addEventListener('change', async event => {
+  await saveSetting({ gameUrl: event.target.value });
+  elements['game-frame'].removeAttribute('src');
+  elements['game-frame'].dataset.url = '';
+  elements['game-frame'].hidden = true;
+  elements['game-frame-placeholder'].hidden = false;
+});
 elements['auto-archive-select'].addEventListener('change', event => saveSetting({ autoArchiveHours: Number(event.target.value) }));
 elements['peek-toggle'].addEventListener('change', event => saveSetting({ openPeekForPinnedLinks: event.target.checked }));
 elements['compact-tabs-toggle'].addEventListener('change', event => saveSetting({ compactTabs: event.target.checked }));
@@ -460,17 +544,32 @@ elements['import-workspace-file'].addEventListener('change', async event => {
 });
 elements['content-settings-button'].addEventListener('click', () => request({ type: 'openContentSettings' }));
 elements['open-game-button'].addEventListener('click', () => request({ type: 'openGame' }));
+elements['load-game-button'].addEventListener('click', () => loadEmbeddedGame());
+elements['reload-game-button'].addEventListener('click', () => loadEmbeddedGame(true));
 
 window.addEventListener('wheel', event => {
-  if (!event.isTrusted || Math.abs(event.deltaX) <= Math.abs(event.deltaY) * 1.15) return;
-  clearTimeout(window.__canopyWheelReset);
-  window.__canopyWheelDistance = (window.__canopyWheelDistance || 0) + event.deltaX;
-  window.__canopyWheelReset = setTimeout(() => { window.__canopyWheelDistance = 0; }, 180);
-  if (Math.abs(window.__canopyWheelDistance) >= 120) {
-    request({ type: 'cycleSpace', direction: window.__canopyWheelDistance > 0 ? 'next' : 'previous' });
-    window.__canopyWheelDistance = 0;
+  if (!event.isTrusted || !state?.settings.spaceSwipeEnabled || state.spaces.length < 2 || spaceSwitchInFlight) return;
+  if (Math.abs(event.deltaX) <= Math.abs(event.deltaY) * 1.2 || Math.abs(event.deltaX) < 1) return;
+  event.preventDefault();
+  clearTimeout(wheelResetTimer);
+  wheelDistance += event.deltaX;
+  const preview = Math.max(-34, Math.min(34, wheelDistance * -.18));
+  elements['space-stage'].classList.remove('space-release');
+  elements['space-stage'].style.setProperty('--space-drag', `${preview}px`);
+  elements['space-stage'].style.setProperty('--space-drag-opacity', String(1 - Math.min(.26, Math.abs(wheelDistance) / 520)));
+  if (Math.abs(wheelDistance) >= 115) {
+    const direction = wheelDistance > 0 ? 'next' : 'previous';
+    resetSpacePreview(false);
+    switchSpaceAnimated({ type: 'cycleSpace', direction }, direction);
+    return;
   }
-}, { passive: true });
+  wheelResetTimer = setTimeout(() => resetSpacePreview(true), 150);
+}, { passive: false });
+
+document.addEventListener('click', () => setCreateMenu(false));
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') setCreateMenu(false);
+});
 
 chrome.runtime.onMessage.addListener(message => {
   if (message.type === 'stateChanged') queueRefresh();

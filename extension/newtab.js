@@ -178,16 +178,6 @@ document.addEventListener('keydown', event => {
     elements['command-input'].select();
   }
 });
-window.addEventListener('wheel', event => {
-  if (!event.isTrusted || Math.abs(event.deltaX) <= Math.abs(event.deltaY) * 1.15) return;
-  clearTimeout(window.__canopyWheelReset);
-  window.__canopyWheelDistance = (window.__canopyWheelDistance || 0) + event.deltaX;
-  window.__canopyWheelReset = setTimeout(() => { window.__canopyWheelDistance = 0; }, 180);
-  if (Math.abs(window.__canopyWheelDistance) >= 120) {
-    request({ type: 'cycleSpace', direction: window.__canopyWheelDistance > 0 ? 'next' : 'previous' });
-    window.__canopyWheelDistance = 0;
-  }
-}, { passive: true });
 chrome.runtime.onMessage.addListener(message => {
   if (message.type === 'stateChanged') request({ type: 'getState' }).then(next => {
     if (next?.apiVersion !== 3) return;

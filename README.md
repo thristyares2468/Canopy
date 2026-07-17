@@ -1,15 +1,15 @@
 # Canopy Browser
 
-Canopy is a macOS browser distributed with a real Chromium runtime. It combines Chromium's native vertical tabs with a persistent workspace layer built around Spaces, Favorites, pinned pages, folders, Today tabs, and an Archive. Canopy does not use Electron.
+Canopy is a macOS browser built on Chromium. The repository contains both the current Chromium-extension build and an experimental native CEF shell that lets Canopy own the whole window instead of layering a sidebar over Chromium's tab strip. Canopy does not use Electron.
 
 ## Workspace Features
 
-- Native Chromium vertical tabs and tab-group-backed Spaces
+- A dedicated left sidebar with tab-group-backed Spaces
 - Up to 12 Favorites shared across Spaces
 - Persistent pinned pages and folders inside each Space
 - Today tabs with configurable Auto Archive and one-click restore
 - `Cmd+T` Command Bar for tabs, Spaces, history, commands, URLs, and Google searches
-- Two-finger horizontal trackpad switching between Spaces
+- Sidebar-only, animated two-finger horizontal trackpad switching between Spaces
 - Per-Space names, colors, and icons
 - Air Traffic Control rules that route matching URLs into a chosen Space
 - Peek popup windows and side-by-side window layout
@@ -25,6 +25,7 @@ Some Arc features require a maintained Chromium fork or a hosted service rather 
 - Apple Silicon or Intel Mac
 - Node.js 22+ and pnpm for checks
 - Internet access for the first Chromium download
+- Python 3.9-3.11, CMake 3.21+, and Xcode for the native CEF prototype
 
 ## Run
 
@@ -34,7 +35,7 @@ pnpm start
 
 The first run downloads the pinned official Chromium snapshot into `~/Library/Caches/Canopy`. Later launches reuse it. Canopy opens `https://mystandrews.saac.qld.edu.au/` as its startup page.
 
-The left sidebar is enabled automatically. Open the Canopy extension from Chromium's extension toolbar for Favorites, pinned pages, folders, Archive, media controls, routing, and settings. New tabs open the Canopy Command Bar.
+Canopy places its extension panel on the left and disables Chromium's duplicate vertical-tab strip for this browser profile. Open the Canopy extension from Chromium's toolbar if the panel is closed. The sidebar contains Favorites, the current Space's pinned and Today tabs, the Space switcher, Library, creation controls, routing, and settings. New tabs open the Canopy Command Bar.
 
 ## Build The macOS App
 
@@ -44,6 +45,18 @@ open ~/Applications/Canopy.app
 ```
 
 The local build is installed at `~/Applications/Canopy.app` and archived at `release/Canopy-macOS.zip`. The outer launcher preserves the untouched Chromium runtime so HTTPS and browser services keep their original behavior. Public distribution still requires Apple Developer ID signing and notarization.
+
+## Native Chromium Shell Prototype
+
+```bash
+python3 -m pip install --user cmake
+pnpm native:install
+open ~/Applications/'Canopy Native.app'
+```
+
+The native prototype downloads the pinned official `cef-project` source and CEF ARM64 binary into `~/Library/Caches/Canopy/cef-project`. Its window is composed from CEF BrowserViews, so there is no stock Chromium tab bar. The left sidebar is permanently visible and each Space owns a live Chromium browser instance. Space names, order, active Space, and last URL persist in `~/Library/Application Support/Canopy Native/workspace.tsv`.
+
+The first native milestone includes address/search navigation, back/forward/reload, a one-Space-per-gesture trackpad switcher, Space create/rename/delete, the St Andrew's home page, denied location/media prompts, and the Jim's Mowing compatibility workspace under **Settings > Advanced**. It intentionally remains a prototype while full multi-tab, downloads, history, bookmarks, password UI, and browser-update plumbing are ported from Chromium.
 
 ## Checks
 
@@ -57,4 +70,4 @@ Google geolocation is blocked by default through Chromium's site-content setting
 
 Canopy leaves Google Sync services disabled and does not need or embed Google API secrets. Normal Google search and websites work without them.
 
-The Jim's Mowing multiplayer page is under **Canopy Settings > Advanced > Developer options > Internal pages** and opens the hosted server at `https://jimsmowingandlawncare.up.railway.app/`. The browser does not use or store the game database URL.
+The Jim's Mowing multiplayer page has a dedicated **Canopy Settings > Jim's Mowing** section with an embedded view and a full-size launch button. It uses the hosted server at `https://jimsmowingandlawncare.up.railway.app/`. The browser does not use or store the game database URL.

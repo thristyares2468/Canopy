@@ -25,13 +25,14 @@
   });
 
   const DEFAULT_WORKSPACE = Object.freeze({
-    version: 1,
+    version: 2,
     favorites: [],
-    pinnedBySpace: {},
-    foldersBySpace: {},
+    spaces: [{ name: 'Personal', icon: 'leaf', color: 'green' }],
+    pinnedBySpace: { personal: [] },
+    foldersBySpace: { personal: [] },
     archive: [],
     routes: [],
-    spaceMeta: {},
+    spaceMeta: { personal: { icon: 'leaf', color: 'green' } },
     captures: []
   });
 
@@ -147,6 +148,36 @@
         color: SPACE_COLORS.includes(metadata?.color) ? metadata.color : 'green'
       };
     }
+    const spaces = [];
+    const seenSpaces = new Set();
+    const addSpace = candidate => {
+      const name = cleanSpaceName(candidate?.name);
+      const key = spaceKey(name);
+      if (!key || seenSpaces.has(key) || spaces.length >= 10) return;
+      const metadata = spaceMeta[key] || candidate || {};
+      const icon = SPACE_ICONS.includes(metadata.icon) ? metadata.icon : 'leaf';
+      const color = SPACE_COLORS.includes(metadata.color) ? metadata.color : 'green';
+      spaces.push({ name, icon, color });
+      spaceMeta[key] = { icon, color };
+      pinnedBySpace[key] ||= [];
+      foldersBySpace[key] ||= [];
+      seenSpaces.add(key);
+    };
+    if (Array.isArray(source.spaces)) {
+      for (const candidate of source.spaces) addSpace(candidate);
+    }
+    if (!spaces.length) {
+      const legacyKeys = new Set([
+        ...Object.keys(spaceMeta),
+        ...Object.keys(pinnedBySpace),
+        ...Object.keys(foldersBySpace)
+      ]);
+      for (const key of legacyKeys) {
+        const name = key.split(/\s+/).map(part => part ? `${part[0].toLocaleUpperCase('en-US')}${part.slice(1)}` : '').join(' ');
+        addSpace({ name: name || 'Personal', ...(spaceMeta[key] || {}) });
+      }
+    }
+    if (!spaces.length) addSpace({ name: 'Personal', icon: 'leaf', color: 'green' });
     const routes = Array.isArray(source.routes) ? source.routes.map(route => ({
       id: cleanLabel(route?.id, 80) || createId('route'),
       pattern: cleanLabel(route?.pattern, 180),
@@ -169,8 +200,9 @@
       createdAt: Number(capture?.createdAt) || Date.now()
     })).filter(capture => capture.filename).slice(0, 100) : [];
     return {
-      version: 1,
+      version: 2,
       favorites: normalizePageList(source.favorites, 'favorite').slice(0, 12),
+      spaces,
       pinnedBySpace,
       foldersBySpace,
       archive,

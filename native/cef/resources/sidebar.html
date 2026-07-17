@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Canopy Sidebar</title>
+    <link rel="stylesheet" href="sidebar.css">
+  </head>
+  <body>
+    <main class="sidebar-shell">
+      <header class="browser-controls">
+        <button id="backButton" class="icon-button" type="button" title="Back" aria-label="Back">&#8592;</button>
+        <button id="forwardButton" class="icon-button" type="button" title="Forward" aria-label="Forward">&#8594;</button>
+        <button id="reloadButton" class="icon-button" type="button" title="Reload" aria-label="Reload">&#8635;</button>
+        <button id="settingsButton" class="icon-button push-right" type="button" title="Settings" aria-label="Settings">&#8943;</button>
+      </header>
+
+      <form id="addressForm" class="address-form">
+        <span class="site-indicator" aria-hidden="true"></span>
+        <input id="addressInput" type="text" inputmode="url" autocomplete="off" spellcheck="false" aria-label="Address and search">
+        <button class="go-button" type="submit" title="Go" aria-label="Go">&#8594;</button>
+      </form>
+
+      <section class="space-stage" aria-labelledby="spaceName">
+        <div class="space-heading">
+          <div>
+            <p class="eyebrow">Space</p>
+            <h1 id="spaceName">School</h1>
+          </div>
+          <div class="space-actions">
+            <button id="renameSpaceButton" class="icon-button small" type="button" title="Rename Space" aria-label="Rename Space">&#9998;</button>
+            <button id="deleteSpaceButton" class="icon-button small" type="button" title="Delete Space" aria-label="Delete Space">&#8722;</button>
+          </div>
+        </div>
+
+        <nav id="spaceDots" class="space-dots" aria-label="Spaces"></nav>
+
+        <button id="activePage" class="active-page" type="button">
+          <span id="pageFavicon" class="page-favicon">C</span>
+          <span class="page-copy">
+            <strong id="pageTitle">Loading...</strong>
+            <span id="pageHost">Canopy</span>
+          </span>
+          <span id="loadingIndicator" class="loading-indicator" aria-hidden="true"></span>
+        </button>
+      </section>
+
+      <section class="favorites" aria-label="Favorites">
+        <button id="homeButton" class="favorite-button" type="button">
+          <span class="favorite-icon school">S</span>
+          <span>St Andrew's</span>
+        </button>
+        <button id="searchButton" class="favorite-button" type="button">
+          <span class="favorite-icon search">G</span>
+          <span>Google</span>
+        </button>
+      </section>
+
+      <section class="space-list-section" aria-labelledby="allSpacesLabel">
+        <div class="list-heading">
+          <span id="allSpacesLabel">All Spaces</span>
+          <span id="spaceCount">0</span>
+        </div>
+        <div id="spaceList" class="space-list"></div>
+      </section>
+
+      <footer class="sidebar-footer">
+        <button id="newSpaceButton" class="new-space-button" type="button">
+          <span aria-hidden="true">+</span>
+          <span>New Space</span>
+        </button>
+      </footer>
+    </main>
+
+    <section id="settingsPanel" class="settings-panel" aria-hidden="true">
+      <header class="settings-header">
+        <div>
+          <p class="eyebrow">Canopy</p>
+          <h2>Settings</h2>
+        </div>
+        <button id="closeSettingsButton" class="icon-button" type="button" title="Close settings" aria-label="Close settings">&#215;</button>
+      </header>
+
+      <div class="settings-content">
+        <section class="settings-group">
+          <h3>Browsing</h3>
+          <button id="settingsHomeButton" class="settings-row" type="button">
+            <span>Home page</span>
+            <span class="settings-value">St Andrew's</span>
+          </button>
+          <div class="settings-row static-row">
+            <span>Search engine</span>
+            <span class="settings-value">Google</span>
+          </div>
+          <div class="settings-row static-row">
+            <span>Location access</span>
+            <span class="status-pill">Blocked</span>
+          </div>
+        </section>
+
+        <section class="settings-group">
+          <h3>Spaces</h3>
+          <div class="settings-row static-row">
+            <span>Sidebar</span>
+            <span class="status-pill enabled">Always on</span>
+          </div>
+          <button id="settingsNewSpaceButton" class="settings-row" type="button">
+            <span>Create Space</span>
+            <span class="settings-value">+</span>
+          </button>
+        </section>
+
+        <details class="advanced-settings">
+          <summary>Advanced</summary>
+          <div class="advanced-body">
+            <div class="settings-row static-row">
+              <span>Runtime</span>
+              <span class="settings-value">Chromium CEF</span>
+            </div>
+            <button id="jimButton" class="compatibility-button" type="button">
+              <span class="compatibility-mark">JM</span>
+              <span>
+                <strong>Compatibility workspace</strong>
+                <small>Open the embedded Jim's Mowing client</small>
+              </span>
+            </button>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <script src="sidebar.js"></script>
+  </body>
+</html>
