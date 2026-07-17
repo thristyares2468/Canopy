@@ -56,7 +56,17 @@ open ~/Applications/'Canopy Native.app'
 
 The native prototype downloads the pinned official `cef-project` source and CEF ARM64 binary into `~/Library/Caches/Canopy/cef-project`. Its window is composed from CEF BrowserViews, so there is no stock Chromium tab bar. The left sidebar is permanently visible and each Space owns a live Chromium browser instance. Space names, order, active Space, and last URL persist in `~/Library/Application Support/Canopy Native/workspace.tsv`.
 
-The first native milestone includes address/search navigation, back/forward/reload, a one-Space-per-gesture trackpad switcher, Space create/rename/delete, the St Andrew's home page, denied location/media prompts, and the Jim's Mowing compatibility workspace under **Settings > Advanced**. It intentionally remains a prototype while full multi-tab, downloads, history, bookmarks, password UI, and browser-update plumbing are ported from Chromium.
+The first native milestone includes address/search navigation, back/forward/reload, a one-Space-per-gesture trackpad switcher, Space create/rename/delete, the St Andrew's home page, denied location/media prompts, and the Jim's Mowing compatibility workspace under **Settings > Advanced**. Jim's Mowing is loaded from `Contents/Resources/jims-game` inside the app; only multiplayer, account, and persistence traffic is sent to Railway.
+
+The native build stages the game from the sibling `fpsshooterserver` checkout by default. Override either input when building elsewhere:
+
+```bash
+CANOPY_JIMS_SOURCE_DIR=/path/to/fpsshooterserver \
+CANOPY_JIMS_SERVER_URL=wss://your-server.example/ \
+pnpm native:install
+```
+
+It intentionally remains a prototype while full multi-tab, downloads, history, bookmarks, password UI, and browser-update plumbing are ported from Chromium.
 
 ## Checks
 
@@ -70,4 +80,4 @@ Google geolocation is blocked by default through Chromium's site-content setting
 
 Canopy leaves Google Sync services disabled and does not need or embed Google API secrets. Normal Google search and websites work without them.
 
-The Jim's Mowing multiplayer page has a dedicated **Canopy Settings > Jim's Mowing** section with an embedded view and a full-size launch button. It uses the hosted server at `https://jimsmowingandlawncare.up.railway.app/`. The browser does not use or store the game database URL.
+The Jim's Mowing multiplayer client is bundled in **Canopy Settings > Advanced** and connects to `wss://jimsmowingandlawncare.up.railway.app/`. The browser does not use or store the game database URL. Set `SERVE_WEB_CLIENT=0` on the Railway service only after a bundled build has been verified; this keeps health, admin, accounts, and multiplayer online while returning `404` for public game files.

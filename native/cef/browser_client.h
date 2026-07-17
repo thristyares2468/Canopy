@@ -14,7 +14,8 @@ class BrowserClient : public CefClient,
                       public CefLifeSpanHandler,
                       public CefLoadHandler,
                       public CefPermissionHandler,
-                      public CefRequestHandler {
+                      public CefRequestHandler,
+                      public CefResourceRequestHandler {
  public:
   enum class Role { kSidebar, kContent };
 
@@ -62,6 +63,19 @@ class BrowserClient : public CefClient,
                       CefRefPtr<CefRequest> request,
                       bool user_gesture,
                       bool is_redirect) override;
+  CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(
+      CefRefPtr<CefBrowser> browser,
+      CefRefPtr<CefFrame> frame,
+      CefRefPtr<CefRequest> request,
+      bool is_navigation,
+      bool is_download,
+      const CefString& request_initiator,
+      bool& disable_default_handling) override;
+
+  CefRefPtr<CefResourceHandler> GetResourceHandler(
+      CefRefPtr<CefBrowser> browser,
+      CefRefPtr<CefFrame> frame,
+      CefRefPtr<CefRequest> request) override;
 
  private:
   CanopyWindow* const owner_;

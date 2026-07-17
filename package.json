@@ -12,7 +12,7 @@
     "native:install": "bash scripts/build-native-cef.sh --install",
     "native:start": "bash scripts/run-native-cef.sh",
     "test": "node --test tests/*.test.cjs",
-    "check": "pnpm test && node scripts/validate-extension.mjs && node --check extension/core.js && node --check extension/background-v3.js && node --check extension/page-actions.js && node --check extension/sidepanel.js && node --check extension/newtab.js && node --check native/cef/resources/sidebar.js && bash -n scripts/download-chromium.sh scripts/run-canopy.sh scripts/build-mac-app.sh scripts/prepare-profile.sh scripts/build-native-cef.sh scripts/run-native-cef.sh"
+    "check": "pnpm test && node scripts/validate-extension.mjs && node --check extension/core.js && node --check extension/background-v3.js && node --check extension/page-actions.js && node --check extension/sidepanel.js && node --check extension/newtab.js && node --check native/cef/resources/sidebar.js && bash -n scripts/download-chromium.sh scripts/run-canopy.sh scripts/build-mac-app.sh scripts/prepare-profile.sh scripts/build-native-cef.sh scripts/run-native-cef.sh scripts/stage-jims-client.sh"
   },
   "engines": {
     "node": ">=22"

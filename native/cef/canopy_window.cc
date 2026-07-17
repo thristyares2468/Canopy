@@ -26,8 +26,7 @@ constexpr int kContentViewIdBase = 1000;
 constexpr int kMaximumSpaces = 12;
 constexpr char kHomeUrl[] = "https://mystandrews.saac.qld.edu.au/";
 constexpr char kSearchUrl[] = "https://www.google.com/";
-constexpr char kJimUrl[] =
-    "https://jimsmowingandlawncare.up.railway.app/";
+constexpr char kJimUrl[] = "https://jims.canopy.internal/";
 constexpr char kActionPrefix[] = "https://canopy.internal/";
 
 std::string Trim(std::string value) {

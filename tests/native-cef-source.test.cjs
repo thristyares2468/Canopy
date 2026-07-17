@@ -98,3 +98,23 @@ test("native sidebar resolves from the app bundle instead of CEF framework resou
   assert.match(source, /"Resources" \/ "canopy" \/ "sidebar\.html"/);
   assert.doesNotMatch(source, /CefGetPath\(PK_DIR_RESOURCES/);
 });
+
+test("Jim's Mowing is served from the app bundle and connects to a configured server", () => {
+  const windowSource = read("native/cef/canopy_window.cc");
+  const clientHeader = read("native/cef/browser_client.h");
+  const clientSource = read("native/cef/browser_client.cc");
+  const buildScript = read("scripts/build-native-cef.sh");
+  const stageScript = read("scripts/stage-jims-client.sh");
+  const cmake = read("native/cef/CMakeLists.txt");
+
+  assert.match(windowSource, /https:\/\/jims\.canopy\.internal\//);
+  assert.doesNotMatch(windowSource, /jimsmowingandlawncare\.up\.railway\.app/);
+  assert.match(clientHeader, /public CefResourceRequestHandler/);
+  assert.match(clientSource, /"Resources" \/ "jims-game"/);
+  assert.match(clientSource, /disable_default_handling = true/);
+  assert.match(buildScript, /stage-jims-client\.sh/);
+  assert.match(stageScript, /CANOPY_JIMS_SERVER_URL/);
+  assert.match(stageScript, /wss:\/\/jimsmowingandlawncare\.up\.railway\.app\//);
+  assert.match(stageScript, /serviceWorkerEnabled: false/);
+  assert.match(cmake, /Resources\/jims-game/);
+});

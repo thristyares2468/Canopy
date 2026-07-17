@@ -39,6 +39,10 @@ fi
 
 mkdir -p "$CEF_PROJECT_DIR/examples/canopy"
 ditto "$ROOT_DIR/native/cef" "$CEF_PROJECT_DIR/examples/canopy"
+CANOPY_JIMS_SOURCE_DIR="${CANOPY_JIMS_SOURCE_DIR:-$ROOT_DIR/../fpsshooterserver}" \
+CANOPY_JIMS_SERVER_URL="${CANOPY_JIMS_SERVER_URL:-wss://jimsmowingandlawncare.up.railway.app/}" \
+  "$ROOT_DIR/scripts/stage-jims-client.sh" \
+  "$CEF_PROJECT_DIR/examples/canopy/resources/jims-game"
 
 if ! grep -q '^add_subdirectory(canopy)$' "$CEF_PROJECT_DIR/examples/CMakeLists.txt"; then
   printf '\n# Canopy native browser shell.\nadd_subdirectory(canopy)\n' >> \

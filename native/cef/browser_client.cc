@@ -5,9 +5,73 @@
 #include "examples/canopy/canopy_window.h"
 #include "examples/shared/client_util.h"
 
+#include <filesystem>
+
+#include "include/cef_parser.h"
+#include "include/cef_path_util.h"
 #include "include/wrapper/cef_helpers.h"
+#include "include/wrapper/cef_stream_resource_handler.h"
 
 namespace canopy {
+
+namespace {
+
+constexpr char kJimOrigin[] = "https://jims.canopy.internal";
+
+bool IsJimResource(const std::string& url) {
+  return url == kJimOrigin || url.rfind(std::string(kJimOrigin) + "/", 0) == 0;
+}
+
+std::filesystem::path GetJimResourceRoot() {
+  CefString executable_directory;
+  if (!CefGetPath(PK_DIR_EXE, executable_directory)) {
+    return std::filesystem::path();
+  }
+  return (std::filesystem::path(executable_directory.ToString()) / ".." /
+          "Resources" / "jims-game")
+      .lexically_normal();
+}
+
+std::string GetJimMimeType(const std::filesystem::path& path) {
+  const std::string extension = path.extension().string();
+  if (extension == ".glb") return "model/gltf-binary";
+  if (extension == ".gltf") return "model/gltf+json";
+  if (extension == ".ktx2") return "image/ktx2";
+  if (extension == ".bin") return "application/octet-stream";
+  if (extension == ".m4a") return "audio/mp4";
+  const std::string mime =
+      CefGetMimeType(extension.empty() ? extension : extension.substr(1));
+  return mime.empty() ? "application/octet-stream" : mime;
+}
+
+std::filesystem::path JimPathForUrl(const std::string& url) {
+  if (!IsJimResource(url)) return std::filesystem::path();
+
+  std::string encoded_path = url.substr(sizeof(kJimOrigin) - 1);
+  const size_t suffix = encoded_path.find_first_of("?#");
+  if (suffix != std::string::npos) encoded_path.resize(suffix);
+  while (!encoded_path.empty() && encoded_path.front() == '/') {
+    encoded_path.erase(encoded_path.begin());
+  }
+  if (encoded_path.empty()) encoded_path = "index.html";
+  if (encoded_path == "legal" || encoded_path == "legal/") {
+    encoded_path = "legal.html";
+  }
+
+  const std::string decoded =
+      CefURIDecode(encoded_path, false, UU_NONE).ToString();
+  const std::filesystem::path relative(decoded);
+  if (relative.is_absolute()) return std::filesystem::path();
+  for (const auto& component : relative) {
+    if (component == "..") return std::filesystem::path();
+  }
+
+  const std::filesystem::path root = GetJimResourceRoot();
+  if (root.empty()) return std::filesystem::path();
+  return (root / relative).lexically_normal();
+}
+
+}  // namespace
 
 BrowserClient::BrowserClient(CanopyWindow* owner, Role role, int space_id)
     : owner_(owner), role_(role), space_id_(space_id) {}
@@ -94,6 +158,35 @@ bool BrowserClient::OnBeforeBrowse(CefRefPtr<CefBrowser> browser,
 
   owner_->HandleSidebarAction(url);
   return true;
+}
+
+CefRefPtr<CefResourceRequestHandler>
+BrowserClient::GetResourceRequestHandler(
+    CefRefPtr<CefBrowser> browser,
+    CefRefPtr<CefFrame> frame,
+    CefRefPtr<CefRequest> request,
+    bool is_navigation,
+    bool is_download,
+    const CefString& request_initiator,
+    bool& disable_default_handling) {
+  CEF_REQUIRE_IO_THREAD();
+  if (!IsJimResource(request->GetURL())) return nullptr;
+  disable_default_handling = true;
+  return this;
+}
+
+CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(
+    CefRefPtr<CefBrowser> browser,
+    CefRefPtr<CefFrame> frame,
+    CefRefPtr<CefRequest> request) {
+  CEF_REQUIRE_IO_THREAD();
+  const std::filesystem::path path = JimPathForUrl(request->GetURL());
+  if (path.empty() || !std::filesystem::is_regular_file(path)) return nullptr;
+
+  CefRefPtr<CefStreamReader> reader =
+      CefStreamReader::CreateForFile(path.string());
+  if (!reader) return nullptr;
+  return new CefStreamResourceHandler(GetJimMimeType(path), reader);
 }
 
 }  // namespace canopy
