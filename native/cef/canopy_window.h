@@ -42,10 +42,13 @@ class CanopyWindow : public CefWindowDelegate,
     int id = 0;
     std::string name;
     std::string url;
+    std::string label;
+    std::string color;
     std::string title;
     bool loading = false;
     bool can_go_back = false;
     bool can_go_forward = false;
+    bool retired = false;
     CefRefPtr<CefBrowserView> browser_view;
   };
 
@@ -58,6 +61,9 @@ class CanopyWindow : public CefWindowDelegate,
   void SwitchRelative(int direction);
   void CreateSpace(const std::string& requested_name);
   void RenameSpace(int space_id, const std::string& requested_name);
+  void UpdateSpaceAppearance(int space_id,
+                             const std::string& requested_label,
+                             const std::string& requested_color);
   void DeleteSpace(int space_id);
   void NavigateActive(const std::string& input);
   void ExecuteActiveCommand(const std::string& command);

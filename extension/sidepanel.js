@@ -558,7 +558,7 @@ window.addEventListener('wheel', event => {
   elements['space-stage'].style.setProperty('--space-drag', `${preview}px`);
   elements['space-stage'].style.setProperty('--space-drag-opacity', String(1 - Math.min(.26, Math.abs(wheelDistance) / 520)));
   if (Math.abs(wheelDistance) >= 115) {
-    const direction = wheelDistance > 0 ? 'next' : 'previous';
+    const direction = wheelDistance > 0 ? 'previous' : 'next';
     resetSpacePreview(false);
     switchSpaceAnimated({ type: 'cycleSpace', direction }, direction);
     return;

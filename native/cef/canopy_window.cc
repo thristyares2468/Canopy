@@ -48,6 +48,25 @@ std::string SanitizeField(std::string value) {
   return Trim(value);
 }
 
+std::string SanitizeLabel(std::string value) {
+  value = SanitizeField(value);
+  if (value.size() > 24) {
+    value.resize(24);
+  }
+  return value;
+}
+
+std::string SanitizeColor(const std::string& value) {
+  static constexpr const char* kAllowedColors[] = {
+      "mint", "blue", "violet", "rose", "amber", "teal"};
+  for (const char* color : kAllowedColors) {
+    if (value == color) {
+      return value;
+    }
+  }
+  return "mint";
+}
+
 std::string DecodeQueryValue(const std::string& url, const std::string& key) {
   const std::string token = key + "=";
   const size_t query_start = url.find('?');
@@ -60,8 +79,8 @@ std::string DecodeQueryValue(const std::string& url, const std::string& key) {
     if (value_start == query_start + 1 || url[value_start - 1] == '&') {
       value_start += token.size();
       const size_t value_end = url.find('&', value_start);
-      const std::string encoded =
-          url.substr(value_start, value_end - value_start);
+      std::string encoded = url.substr(value_start, value_end - value_start);
+      std::replace(encoded.begin(), encoded.end(), '+', ' ');
       return CefURIDecode(encoded, true, UU_SPACES).ToString();
     }
     value_start = url.find(token, value_start + token.size());
@@ -269,6 +288,10 @@ void CanopyWindow::HandleSidebarAction(const std::string& url) {
   } else if (action == "rename") {
     RenameSpace(DecodeInt(DecodeQueryValue(url, "id"), active_space_id_),
                 DecodeQueryValue(url, "name"));
+  } else if (action == "appearance") {
+    UpdateSpaceAppearance(
+        DecodeInt(DecodeQueryValue(url, "id"), active_space_id_),
+        DecodeQueryValue(url, "label"), DecodeQueryValue(url, "color"));
   } else if (action == "delete") {
     DeleteSpace(DecodeInt(DecodeQueryValue(url, "id"), active_space_id_));
   }
@@ -297,10 +320,19 @@ void CanopyWindow::LoadWorkspace() {
 
     std::string id;
     std::string name;
+    std::string label;
+    std::string color;
     std::string url;
     std::getline(row, id, '\t');
     std::getline(row, name, '\t');
+    std::getline(row, label, '\t');
+    std::getline(row, color, '\t');
     std::getline(row, url);
+    if (url.empty()) {
+      url = label;
+      label.clear();
+      color.clear();
+    }
     const int parsed_id = DecodeInt(id, 0);
     if (parsed_id <= 0 || name.empty() || url.empty() ||
         FindSpace(parsed_id) != nullptr) {
@@ -310,6 +342,8 @@ void CanopyWindow::LoadWorkspace() {
     space.id = parsed_id;
     space.name = SanitizeField(name);
     space.url = url;
+    space.label = SanitizeLabel(label);
+    space.color = SanitizeColor(color);
     spaces_.push_back(space);
     next_space_id_ = std::max(next_space_id_, parsed_id + 1);
     if (spaces_.size() >= kMaximumSpaces) {
@@ -333,16 +367,29 @@ void CanopyWindow::SaveWorkspace() const {
   }
   output << "active\t" << active_space_id_ << '\n';
   for (const auto& space : spaces_) {
+    if (space.retired) {
+      continue;
+    }
     output << "space\t" << space.id << '\t' << SanitizeField(space.name)
-           << '\t' << SanitizeField(space.url) << '\n';
+           << '\t' << SanitizeLabel(space.label) << '\t'
+           << SanitizeColor(space.color) << '\t'
+           << SanitizeField(space.url) << '\n';
   }
 }
 
 void CanopyWindow::EnsureDefaultSpaces() {
   if (spaces_.empty()) {
-    spaces_.push_back({next_space_id_++, "School", kHomeUrl});
-    spaces_.push_back({next_space_id_++, "Research", kSearchUrl});
-    spaces_.push_back({next_space_id_++, "Personal", kSearchUrl});
+    spaces_.push_back(
+        {next_space_id_++, "School", kHomeUrl, "\u25a4", "mint"});
+    spaces_.push_back(
+        {next_space_id_++, "Research", kSearchUrl, "\u2315", "violet"});
+    spaces_.push_back(
+        {next_space_id_++, "Personal", kSearchUrl, "\u25cf", "blue"});
+  }
+  for (auto& space : spaces_) {
+    if (space.color.empty()) {
+      space.color = "mint";
+    }
   }
   if (!FindSpace(active_space_id_)) {
     active_space_id_ = spaces_.front().id;
@@ -372,7 +419,7 @@ void CanopyWindow::CreateSpaceView(Space& space, bool visible) {
 void CanopyWindow::SwitchToSpace(int space_id) {
   CEF_REQUIRE_UI_THREAD();
   Space* target = FindSpace(space_id);
-  if (!target || space_id == active_space_id_) {
+  if (!target || target->retired || space_id == active_space_id_) {
     return;
   }
 
@@ -396,38 +443,76 @@ void CanopyWindow::SwitchToSpace(int space_id) {
 }
 
 void CanopyWindow::SwitchRelative(int direction) {
-  if (spaces_.size() < 2) {
+  std::vector<int> available_space_ids;
+  for (const auto& space : spaces_) {
+    if (!space.retired) {
+      available_space_ids.push_back(space.id);
+    }
+  }
+  if (available_space_ids.size() < 2) {
     return;
   }
-  const auto current = std::find_if(
-      spaces_.begin(), spaces_.end(),
-      [this](const Space& space) { return space.id == active_space_id_; });
-  if (current == spaces_.end()) {
-    SwitchToSpace(spaces_.front().id);
+  const auto current =
+      std::find(available_space_ids.begin(), available_space_ids.end(),
+                active_space_id_);
+  if (current == available_space_ids.end()) {
+    SwitchToSpace(available_space_ids.front());
     return;
   }
-  const int index = static_cast<int>(std::distance(spaces_.begin(), current));
-  const int count = static_cast<int>(spaces_.size());
+  const int index =
+      static_cast<int>(std::distance(available_space_ids.begin(), current));
+  const int count = static_cast<int>(available_space_ids.size());
   const int next = (index + direction + count) % count;
-  SwitchToSpace(spaces_[next].id);
+  SwitchToSpace(available_space_ids[next]);
 }
 
 void CanopyWindow::CreateSpace(const std::string& requested_name) {
-  if (!window_ || spaces_.size() >= kMaximumSpaces) {
+  if (!window_) {
     return;
   }
-  Space space;
-  space.id = next_space_id_++;
-  space.name = SanitizeField(requested_name);
-  if (space.name.empty()) {
-    space.name = "Space " + std::to_string(spaces_.size() + 1);
+
+  const size_t available_space_count =
+      std::count_if(spaces_.begin(), spaces_.end(), [](const Space& space) {
+        return !space.retired;
+      });
+  if (available_space_count >= kMaximumSpaces) {
+    return;
   }
-  space.url = kSearchUrl;
-  CreateSpaceView(space, false);
-  window_->AddChildView(space.browser_view);
-  window_->GetLayout()->AsBoxLayout()->SetFlexForView(space.browser_view, 1);
-  const int id = space.id;
-  spaces_.push_back(space);
+
+  Space* target = nullptr;
+  const auto reusable = std::find_if(
+      spaces_.begin(), spaces_.end(),
+      [](const Space& space) { return space.retired; });
+  if (reusable != spaces_.end()) {
+    target = &*reusable;
+    target->retired = false;
+  } else {
+    Space space;
+    space.id = next_space_id_++;
+    spaces_.push_back(space);
+    target = &spaces_.back();
+  }
+
+  target->name = SanitizeField(requested_name);
+  if (target->name.empty()) {
+    target->name = "Space " + std::to_string(available_space_count + 1);
+  }
+  target->url = kSearchUrl;
+  target->label.clear();
+  target->color = "mint";
+  target->title.clear();
+  target->loading = false;
+  target->can_go_back = false;
+  target->can_go_forward = false;
+  if (!target->browser_view) {
+    CreateSpaceView(*target, false);
+    window_->AddChildView(target->browser_view);
+    window_->GetLayout()->AsBoxLayout()->SetFlexForView(target->browser_view,
+                                                        1);
+  } else if (target->browser_view->GetBrowser()) {
+    target->browser_view->GetBrowser()->GetMainFrame()->LoadURL(kSearchUrl);
+  }
+  const int id = target->id;
   SwitchToSpace(id);
 }
 
@@ -435,7 +520,7 @@ void CanopyWindow::RenameSpace(int space_id,
                                const std::string& requested_name) {
   Space* space = FindSpace(space_id);
   const std::string name = SanitizeField(requested_name);
-  if (!space || name.empty()) {
+  if (!space || space->retired || name.empty()) {
     return;
   }
   space->name = name.substr(0, 42);
@@ -443,39 +528,75 @@ void CanopyWindow::RenameSpace(int space_id,
   PushSidebarState();
 }
 
+void CanopyWindow::UpdateSpaceAppearance(
+    int space_id,
+    const std::string& requested_label,
+    const std::string& requested_color) {
+  Space* space = FindSpace(space_id);
+  if (!space || space->retired) {
+    return;
+  }
+  const std::string label = SanitizeLabel(requested_label);
+  space->label = label;
+  space->color = SanitizeColor(requested_color);
+  SaveWorkspace();
+  PushSidebarState();
+}
+
 void CanopyWindow::DeleteSpace(int space_id) {
-  if (!window_ || spaces_.size() <= 1) {
+  const size_t available_space_count =
+      std::count_if(spaces_.begin(), spaces_.end(), [](const Space& space) {
+        return !space.retired;
+      });
+  if (!window_ || available_space_count <= 1) {
     return;
   }
   auto found = std::find_if(spaces_.begin(), spaces_.end(),
                             [space_id](const Space& space) {
                               return space.id == space_id;
                             });
-  if (found == spaces_.end()) {
+  if (found == spaces_.end() || found->retired) {
     return;
   }
 
   const bool deleting_active = found->id == active_space_id_;
-  const int replacement =
-      deleting_active
-          ? spaces_[(std::distance(spaces_.begin(), found) + 1) % spaces_.size()]
-                .id
-          : active_space_id_;
-  CefRefPtr<CefBrowserView> view = found->browser_view;
-  if (view) {
-    window_->RemoveChildView(view);
-    if (view->GetBrowser()) {
-      view->GetBrowser()->GetHost()->CloseBrowser(true);
+  int replacement = active_space_id_;
+  if (deleting_active) {
+    const size_t found_index =
+        static_cast<size_t>(std::distance(spaces_.begin(), found));
+    for (size_t offset = 1; offset < spaces_.size(); ++offset) {
+      const Space& candidate = spaces_[(found_index + offset) % spaces_.size()];
+      if (candidate.id != space_id && !candidate.retired) {
+        replacement = candidate.id;
+        break;
+      }
+    }
+    if (replacement == active_space_id_) {
+      return;
+    }
+    SwitchToSpace(replacement);
+  }
+
+  Space* target = FindSpace(space_id);
+  if (!target) {
+    return;
+  }
+  target->retired = true;
+  target->name.clear();
+  target->label.clear();
+  target->color = "mint";
+  target->title.clear();
+  target->loading = false;
+  target->can_go_back = false;
+  target->can_go_forward = false;
+  if (target->browser_view) {
+    target->browser_view->SetVisible(false);
+    if (target->browser_view->GetBrowser()) {
+      target->browser_view->GetBrowser()->GetMainFrame()->LoadURL("about:blank");
     }
   }
-  spaces_.erase(found);
-  if (deleting_active) {
-    active_space_id_ = 0;
-    SwitchToSpace(replacement);
-  } else {
-    SaveWorkspace();
-    PushSidebarState();
-  }
+  SaveWorkspace();
+  PushSidebarState();
 }
 
 void CanopyWindow::NavigateActive(const std::string& input) {
@@ -572,14 +693,19 @@ std::string CanopyWindow::BuildStateJson() const {
   root->SetInt("maximumSpaces", kMaximumSpaces);
 
   CefRefPtr<CefListValue> items = CefListValue::Create();
-  for (size_t index = 0; index < spaces_.size(); ++index) {
-    const Space& space = spaces_[index];
+  size_t output_index = 0;
+  for (const Space& space : spaces_) {
+    if (space.retired) {
+      continue;
+    }
     CefRefPtr<CefDictionaryValue> item = CefDictionaryValue::Create();
     item->SetInt("id", space.id);
     item->SetString("name", space.name);
+    item->SetString("label", space.label);
+    item->SetString("color", SanitizeColor(space.color));
     item->SetString("title", space.title.empty() ? space.name : space.title);
     item->SetString("url", space.url);
-    items->SetDictionary(index, item);
+    items->SetDictionary(output_index++, item);
   }
   root->SetList("spaces", items);
 

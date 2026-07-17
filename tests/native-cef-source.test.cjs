@@ -32,7 +32,47 @@ test("native sidebar locks a trackpad gesture to one Space change", () => {
   assert.match(source, /swipeLocked/);
   assert.match(source, /Math\.abs\(swipeDistance\) < 105/);
   assert.match(source, /720/);
-  assert.match(source, /action\(swipeDistance > 0 \? "next" : "previous"\)/);
+  assert.match(source, /action\(swipeDistance > 0 \? "previous" : "next"\)/);
+});
+
+test("native Spaces use a compact bottom dock with editable appearance", () => {
+  const markup = read("native/cef/resources/sidebar.html");
+  const script = read("native/cef/resources/sidebar.js");
+  const styles = read("native/cef/resources/sidebar.css");
+  const nativeSource = read("native/cef/canopy_window.cc");
+
+  assert.match(markup, /<footer class="sidebar-footer">[\s\S]*id="spaceDots"/);
+  assert.ok(markup.indexOf('class="favorites"') < markup.indexOf('class="space-stage"'));
+  assert.match(markup, /mystandrews\.saac\.qld\.edu\.au\/favicon\.ico/);
+  assert.match(markup, /www\.google\.com\/favicon\.ico/);
+  assert.doesNotMatch(markup, /id="spaceList"/);
+  assert.match(markup, /id="spaceContextMenu"/);
+  assert.match(script, /addEventListener\("contextmenu"/);
+  assert.match(script, /action\("appearance"/);
+  assert.match(styles, /\.space-dock-button\.active/);
+  assert.match(nativeSource, /UpdateSpaceAppearance/);
+  assert.match(nativeSource, /item->SetString\("color"/);
+  assert.equal(
+    nativeSource.includes("std::replace(encoded.begin(), encoded.end(), '+', ' ');"),
+    true,
+    "form-encoded Space names should preserve spaces"
+  );
+});
+
+test("native active Space deletion recycles its CEF BrowserView safely", () => {
+  const source = read("native/cef/canopy_window.cc");
+  const header = read("native/cef/canopy_window.h");
+  const deleteStart = source.indexOf("void CanopyWindow::DeleteSpace");
+  const navigateStart = source.indexOf("void CanopyWindow::NavigateActive");
+  const deleteSource = source.slice(deleteStart, navigateStart);
+
+  assert.match(header, /bool retired = false/);
+  assert.match(deleteSource, /SwitchToSpace\(replacement\)/);
+  assert.match(deleteSource, /target->retired = true/);
+  assert.match(deleteSource, /LoadURL\("about:blank"\)/);
+  assert.doesNotMatch(deleteSource, /CloseBrowser\(true\)/);
+  assert.doesNotMatch(deleteSource, /spaces_\.erase/);
+  assert.match(source, /CreateSpace[\s\S]*space\.retired[\s\S]*target->retired = false/);
 });
 
 test("native build sources and resources are present", () => {

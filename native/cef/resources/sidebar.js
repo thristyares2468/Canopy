@@ -11,9 +11,8 @@
     closeSettingsButton: document.querySelector("#closeSettingsButton"),
     settingsPanel: document.querySelector("#settingsPanel"),
     spaceName: document.querySelector("#spaceName"),
+    spaceGlyph: document.querySelector("#spaceGlyph"),
     spaceDots: document.querySelector("#spaceDots"),
-    spaceList: document.querySelector("#spaceList"),
-    spaceCount: document.querySelector("#spaceCount"),
     pageTitle: document.querySelector("#pageTitle"),
     pageHost: document.querySelector("#pageHost"),
     pageFavicon: document.querySelector("#pageFavicon"),
@@ -25,7 +24,22 @@
     homeButton: document.querySelector("#homeButton"),
     settingsHomeButton: document.querySelector("#settingsHomeButton"),
     searchButton: document.querySelector("#searchButton"),
-    jimButton: document.querySelector("#jimButton")
+    jimButton: document.querySelector("#jimButton"),
+    spaceContextMenu: document.querySelector("#spaceContextMenu"),
+    contextSpaceGlyph: document.querySelector("#contextSpaceGlyph"),
+    contextSpaceName: document.querySelector("#contextSpaceName"),
+    contextRenameButton: document.querySelector("#contextRenameButton"),
+    contextLabelButton: document.querySelector("#contextLabelButton"),
+    contextDeleteButton: document.querySelector("#contextDeleteButton")
+  };
+
+  const spaceColors = {
+    mint: "#6ad99d",
+    blue: "#73aef5",
+    violet: "#b693ef",
+    rose: "#ec8eaf",
+    amber: "#efb76e",
+    teal: "#68ceca"
   };
 
   let state = {
@@ -42,6 +56,7 @@
   let swipeDistance = 0;
   let swipeLocked = false;
   let swipeResetTimer = 0;
+  let contextSpaceId = 0;
 
   function action(name, parameters = {}) {
     const query = new URLSearchParams(parameters).toString();
@@ -65,43 +80,86 @@
     return source ? source[0].toUpperCase() : "C";
   }
 
+  function spaceGlyph(name) {
+    const normalized = String(name || "").trim().toLowerCase();
+    if (/school|saac|study/.test(normalized)) return "\u25a4";
+    if (/research|search/.test(normalized)) return "\u2315";
+    if (/personal|home/.test(normalized)) return "\u25cf";
+    if (/code|work|dev/.test(normalized)) return "<>";
+    return normalized.slice(0, 1).toUpperCase() || "C";
+  }
+
+  function displayLabel(space) {
+    return space?.label || spaceGlyph(space?.name);
+  }
+
+  function contextSpace() {
+    return state.spaces.find((space) => space.id === contextSpaceId);
+  }
+
+  function setContextMenu(open, spaceId = 0) {
+    if (open) {
+      contextSpaceId = spaceId;
+    }
+    const space = contextSpace();
+    const visible = Boolean(open && space);
+    elements.spaceContextMenu.classList.toggle("open", visible);
+    elements.spaceContextMenu.setAttribute("aria-hidden", String(!visible));
+    if (visible) {
+      elements.contextSpaceName.textContent = space.name;
+      elements.contextSpaceGlyph.textContent = displayLabel(space);
+      elements.contextDeleteButton.disabled = state.spaces.length <= 1;
+      elements.spaceContextMenu.style.setProperty(
+        "--context-accent",
+        spaceColors[space.color] || spaceColors.mint
+      );
+      document.querySelectorAll(".color-swatch").forEach((swatch) => {
+        swatch.classList.toggle("selected", swatch.dataset.color === space.color);
+      });
+    } else {
+      contextSpaceId = 0;
+    }
+  }
+
   function renderSpaces() {
     const active = activeSpace();
     elements.spaceName.textContent = active?.name || "Canopy";
-    elements.spaceCount.textContent = String(state.spaces.length);
+    elements.spaceGlyph.textContent = displayLabel(active);
+    document.documentElement.style.setProperty(
+      "--space-accent",
+      spaceColors[active?.color] || spaceColors.mint
+    );
     elements.deleteSpaceButton.disabled = state.spaces.length <= 1;
     elements.newSpaceButton.disabled = state.spaces.length >= state.maximumSpaces;
 
     elements.spaceDots.replaceChildren(
       ...state.spaces.map((space) => {
-        const dot = document.createElement("button");
-        dot.type = "button";
-        dot.className = `space-dot${space.id === state.activeSpaceId ? " active" : ""}`;
-        dot.title = space.name;
-        dot.setAttribute("aria-label", `Open ${space.name}`);
-        dot.addEventListener("click", () => action("switch", { id: space.id }));
-        return dot;
-      })
-    );
-
-    elements.spaceList.replaceChildren(
-      ...state.spaces.map((space, index) => {
         const button = document.createElement("button");
         button.type = "button";
-        button.className = `space-list-button${space.id === state.activeSpaceId ? " active" : ""}`;
-
-        const number = document.createElement("span");
-        number.className = "space-number";
-        number.textContent = String(index + 1);
-
-        const label = document.createElement("span");
-        label.textContent = space.name;
-
-        button.append(number, label);
+        button.className = `space-dock-button${space.id === state.activeSpaceId ? " active" : ""}`;
+        button.title = space.name;
+        button.dataset.spaceId = String(space.id);
+        button.setAttribute("aria-label", `Open ${space.name}`);
+        button.style.setProperty("--dock-accent", spaceColors[space.color] || spaceColors.mint);
+        if (space.id === state.activeSpaceId) {
+          button.setAttribute("aria-current", "page");
+          const glyph = document.createElement("span");
+          glyph.className = "space-dock-glyph";
+          glyph.textContent = displayLabel(space);
+          button.append(glyph);
+        }
         button.addEventListener("click", () => action("switch", { id: space.id }));
+        button.addEventListener("contextmenu", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setContextMenu(true, space.id);
+        });
         return button;
       })
     );
+    if (contextSpaceId) {
+      setContextMenu(true, contextSpaceId);
+    }
   }
 
   function renderPage() {
@@ -137,6 +195,9 @@
   }
 
   function setSettingsOpen(open) {
+    if (open) {
+      setContextMenu(false);
+    }
     elements.settingsPanel.classList.toggle("open", open);
     elements.settingsPanel.setAttribute("aria-hidden", String(!open));
   }
@@ -187,9 +248,60 @@
   });
   elements.settingsButton.addEventListener("click", () => setSettingsOpen(true));
   elements.closeSettingsButton.addEventListener("click", () => setSettingsOpen(false));
+  elements.contextRenameButton.addEventListener("click", () => {
+    const space = contextSpace();
+    if (!space) return;
+    const name = window.prompt("Rename Space", space.name);
+    if (name?.trim() && name.trim() !== space.name) {
+      action("rename", { id: space.id, name: name.trim() });
+    }
+    setContextMenu(false);
+  });
+  elements.contextLabelButton.addEventListener("click", () => {
+    const space = contextSpace();
+    if (!space) return;
+    const requested = window.prompt("Space label (up to 3 characters)", displayLabel(space));
+    if (requested !== null) {
+      const label = Array.from(requested.trim()).slice(0, 3).join("");
+      action("appearance", { id: space.id, label, color: space.color || "mint" });
+    }
+    setContextMenu(false);
+  });
+  elements.contextDeleteButton.addEventListener("click", () => {
+    const space = contextSpace();
+    if (space && state.spaces.length > 1 && window.confirm(`Delete ${space.name}?`)) {
+      action("delete", { id: space.id });
+    }
+    setContextMenu(false);
+  });
+  document.querySelectorAll(".color-swatch").forEach((swatch) => {
+    swatch.addEventListener("click", () => {
+      const space = contextSpace();
+      if (space && swatch.dataset.color) {
+        action("appearance", {
+          id: space.id,
+          label: space.label || "",
+          color: swatch.dataset.color
+        });
+      }
+      setContextMenu(false);
+    });
+  });
+  document.querySelectorAll(".favorite-icon img").forEach((image) => {
+    image.addEventListener("error", () => {
+      image.hidden = true;
+    });
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!elements.spaceContextMenu.contains(event.target)) {
+      setContextMenu(false);
+    }
+  });
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
+      setContextMenu(false);
       setSettingsOpen(false);
     }
   });
@@ -213,7 +325,7 @@
     }
 
     swipeLocked = true;
-    action(swipeDistance > 0 ? "next" : "previous");
+    action(swipeDistance > 0 ? "previous" : "next");
     swipeDistance = 0;
     window.setTimeout(() => {
       swipeLocked = false;
