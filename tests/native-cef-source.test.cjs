@@ -43,8 +43,9 @@ test("native Spaces use a compact bottom dock with editable appearance", () => {
 
   assert.match(markup, /<footer class="sidebar-footer">[\s\S]*id="spaceDots"/);
   assert.ok(markup.indexOf('class="favorites"') < markup.indexOf('class="space-stage"'));
-  assert.match(markup, /mystandrews\.saac\.qld\.edu\.au\/favicon\.ico/);
-  assert.match(markup, /www\.google\.com\/favicon\.ico/);
+  assert.match(markup, /id="favoritesList"/);
+  assert.match(nativeSource, /mystandrews\.saac\.qld\.edu\.au\/favicon\.ico/);
+  assert.match(nativeSource, /www\.google\.com\/favicon\.ico/);
   assert.doesNotMatch(markup, /id="spaceList"/);
   assert.match(markup, /id="spaceContextMenu"/);
   assert.match(script, /addEventListener\("contextmenu"/);
@@ -57,22 +58,77 @@ test("native Spaces use a compact bottom dock with editable appearance", () => {
     true,
     "form-encoded Space names should preserve spaces"
   );
+  assert.match(nativeSource, /UU_PATH_SEPARATORS/);
+  assert.match(nativeSource, /UU_URL_SPECIAL_CHARS_EXCEPT_PATH_SEPARATORS/);
 });
 
-test("native active Space deletion recycles its CEF BrowserView safely", () => {
+test("native Space and tab deletion recycle CEF BrowserViews safely", () => {
   const source = read("native/cef/canopy_window.cc");
   const header = read("native/cef/canopy_window.h");
   const deleteStart = source.indexOf("void CanopyWindow::DeleteSpace");
-  const navigateStart = source.indexOf("void CanopyWindow::NavigateActive");
-  const deleteSource = source.slice(deleteStart, navigateStart);
+  const reorderStart = source.indexOf("void CanopyWindow::ReorderSpace");
+  const deleteSource = source.slice(deleteStart, reorderStart);
 
   assert.match(header, /bool retired = false/);
-  assert.match(deleteSource, /SwitchToSpace\(replacement\)/);
+  assert.match(deleteSource, /SwitchToSpace\(candidate\.id\)/);
   assert.match(deleteSource, /target->retired = true/);
+  assert.match(deleteSource, /for \(Tab& tab : target->tabs\)/);
   assert.match(deleteSource, /LoadURL\("about:blank"\)/);
   assert.doesNotMatch(deleteSource, /CloseBrowser\(true\)/);
   assert.doesNotMatch(deleteSource, /spaces_\.erase/);
   assert.match(source, /CreateSpace[\s\S]*space\.retired[\s\S]*target->retired = false/);
+  assert.match(source, /CloseTab[\s\S]*tab\.retired/);
+});
+
+test("native tabs are persistent within Spaces and support browser workflows", () => {
+  const source = read("native/cef/canopy_window.cc");
+  const header = read("native/cef/canopy_window.h");
+  const markup = read("native/cef/resources/sidebar.html");
+  const script = read("native/cef/resources/sidebar.js");
+
+  assert.match(source, /kMaximumTabsPerSpace = 24/);
+  assert.match(source, /output << "tab\\t"/);
+  assert.match(source, /void CanopyWindow::SwitchToTab/);
+  assert.match(source, /void CanopyWindow::ReopenClosedTab/);
+  assert.match(source, /void CanopyWindow::MoveTabToSpace/);
+  assert.match(source, /void CanopyWindow::ReorderTab/);
+  assert.match(source, /void CanopyWindow::ReorderSpace/);
+  assert.match(source, /output << "closed\\t"/);
+  assert.match(source, /output << "favorite\\t"/);
+  assert.match(source, /void CanopyWindow::ToggleFavorite/);
+  assert.match(header, /std::vector<Tab> tabs/);
+  assert.match(header, /std::deque<ClosedTab> closed_tabs_/);
+  assert.match(markup, /id="pinnedTabs"/);
+  assert.match(markup, /id="tabList"/);
+  assert.match(script, /action\("pin-tab"/);
+  assert.match(script, /action\("move-tab"/);
+  assert.match(script, /action\("reorder-tab"/);
+  assert.match(script, /action\("reorder-space"/);
+});
+
+test("native shell handles shortcuts, popups, history, favicons, and downloads", () => {
+  const windowSource = read("native/cef/canopy_window.cc");
+  const clientHeader = read("native/cef/browser_client.h");
+  const clientSource = read("native/cef/browser_client.cc");
+  const markup = read("native/cef/resources/sidebar.html");
+
+  assert.match(clientHeader, /public CefDownloadHandler/);
+  assert.match(clientHeader, /public CefKeyboardHandler/);
+  assert.match(clientSource, /OnPreKeyEvent/);
+  assert.match(clientSource, /OnBeforePopup/);
+  assert.match(clientSource, /OnBeforeDownload/);
+  assert.match(clientSource, /OnFaviconURLChange/);
+  assert.match(windowSource, /history\.tsv/);
+  assert.match(windowSource, /HandleKeyboardShortcut/);
+  assert.match(markup, /id="libraryPanel"/);
+  assert.match(markup, /id="downloadsTabButton"/);
+  assert.match(markup, /id="commandMenu"/);
+  assert.match(markup, /id="findBar"/);
+  assert.match(windowSource, /GetHost\(\)->Find/);
+  assert.match(windowSource, /GetHost\(\)->SetZoomLevel/);
+  assert.match(windowSource, /GetHost\(\)->Print/);
+  assert.match(windowSource, /ClearHttpCache/);
+  assert.match(windowSource, /DeleteCookies/);
 });
 
 test("native build sources and resources are present", () => {

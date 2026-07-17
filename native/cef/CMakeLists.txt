@@ -28,6 +28,15 @@ set_source_files_properties(${CANOPY_WEB_RESOURCES} PROPERTIES
   HEADER_FILE_ONLY TRUE
   )
 
+# The shared CEF sample nib still uses the placeholder app name "example".
+# Compile a Canopy-branded copy after the shared resource phase.
+set(CANOPY_MENU_XIB "${CMAKE_CURRENT_BINARY_DIR}/CanopyMainMenu.xib")
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../shared/mac/English.lproj/MainMenu.xib"
+     CANOPY_MENU_CONTENTS)
+string(REPLACE "example" "Canopy" CANOPY_MENU_CONTENTS
+       "${CANOPY_MENU_CONTENTS}")
+file(WRITE "${CANOPY_MENU_XIB}" "${CANOPY_MENU_CONTENTS}")
+
 set(CANOPY_TARGET "Canopy")
 set(CANOPY_HELPER_TARGET "Canopy_Helper")
 set(CANOPY_HELPER_OUTPUT_NAME "Canopy Helper")
@@ -101,6 +110,9 @@ COPY_MAC_RESOURCES("${SHARED_RESOURCES_SRCS}" "${PREFIXES}"
 add_custom_command(
   TARGET ${CANOPY_TARGET}
   POST_BUILD
+  COMMAND /usr/bin/ibtool --compile
+          "${CANOPY_APP}/Contents/Resources/English.lproj/MainMenu.nib"
+          "${CANOPY_MENU_XIB}"
   COMMAND ${CMAKE_COMMAND} -E make_directory
           "${CANOPY_APP}/Contents/Resources/canopy"
   COMMAND ${CMAKE_COMMAND} -E copy_if_different

@@ -12,35 +12,38 @@
         <button id="backButton" class="icon-button" type="button" title="Back" aria-label="Back">&#8592;</button>
         <button id="forwardButton" class="icon-button" type="button" title="Forward" aria-label="Forward">&#8594;</button>
         <button id="reloadButton" class="icon-button" type="button" title="Reload" aria-label="Reload">&#8635;</button>
-        <button id="settingsButton" class="icon-button push-right" type="button" title="Settings" aria-label="Settings">&#8943;</button>
+        <button id="libraryButton" class="icon-button push-right" type="button" title="Library" aria-label="Open history and downloads">&#9638;</button>
+        <button id="settingsButton" class="icon-button" type="button" title="Settings" aria-label="Settings">&#8943;</button>
       </header>
 
       <form id="addressForm" class="address-form">
         <span class="site-indicator" aria-hidden="true"></span>
-        <input id="addressInput" type="text" inputmode="url" autocomplete="off" spellcheck="false" aria-label="Address and search">
+        <input id="addressInput" type="text" inputmode="url" autocomplete="off" spellcheck="false" aria-label="Address and search" placeholder="Search or enter an address">
         <button class="go-button" type="submit" title="Go" aria-label="Go">&#8594;</button>
       </form>
 
-      <section class="favorites" aria-label="Favorites">
-        <button id="homeButton" class="favorite-button" type="button" title="St Andrew's" aria-label="Open St Andrew's">
-          <span class="favorite-icon school" aria-hidden="true">
-            <span class="favorite-fallback">S</span>
-            <img src="https://mystandrews.saac.qld.edu.au/favicon.ico" alt="">
-          </span>
-        </button>
-        <button id="searchButton" class="favorite-button" type="button" title="Google" aria-label="Open Google">
-          <span class="favorite-icon search" aria-hidden="true">
-            <span class="favorite-fallback">G</span>
-            <img src="https://www.google.com/favicon.ico" alt="">
-          </span>
-        </button>
+      <section id="commandMenu" class="command-menu" aria-hidden="true">
+        <p class="command-eyebrow">Go to</p>
+        <div id="commandResults" class="command-results" role="listbox"></div>
       </section>
+
+      <form id="findBar" class="find-bar" hidden>
+        <input id="findInput" type="search" autocomplete="off" placeholder="Find on page" aria-label="Find on page">
+        <button id="findPreviousButton" class="icon-button small" type="button" title="Previous match" aria-label="Previous match">&#8593;</button>
+        <button id="findNextButton" class="icon-button small" type="button" title="Next match" aria-label="Next match">&#8595;</button>
+        <button id="closeFindButton" class="icon-button small" type="button" title="Close find" aria-label="Close find">&#215;</button>
+      </form>
+
+      <section id="favoritesList" class="favorites" aria-label="Favorites"></section>
 
       <section class="space-stage" aria-labelledby="spaceName">
         <div class="space-heading">
           <div class="space-title">
             <span id="spaceGlyph" class="space-glyph" aria-hidden="true">S</span>
-            <h1 id="spaceName">School</h1>
+            <div class="space-title-copy">
+              <h1 id="spaceName">School</h1>
+              <span id="spaceTabCount" class="space-meta">1 tab</span>
+            </div>
           </div>
           <div class="space-actions">
             <button id="renameSpaceButton" class="icon-button small" type="button" title="Rename Space" aria-label="Rename Space">&#9998;</button>
@@ -48,25 +51,44 @@
           </div>
         </div>
 
-        <button id="activePage" class="active-page" type="button">
-          <span id="pageFavicon" class="page-favicon">C</span>
-          <span class="page-copy">
-            <strong id="pageTitle">Loading...</strong>
-            <span id="pageHost">Canopy</span>
-          </span>
-          <span id="loadingIndicator" class="loading-indicator" aria-hidden="true"></span>
-        </button>
+        <div id="pinnedSection" class="pinned-section" hidden>
+          <p class="section-label">Pinned</p>
+          <div id="pinnedTabs" class="pinned-tabs"></div>
+        </div>
+
+        <div class="tabs-section">
+          <div id="tabList" class="tab-list" role="tablist" aria-label="Open tabs"></div>
+          <button id="newTabButton" class="new-tab-button" type="button">
+            <span aria-hidden="true">+</span>
+            <span>New Tab</span>
+            <kbd>&#8984;T</kbd>
+          </button>
+        </div>
       </section>
 
-      <div class="sidebar-spacer" aria-hidden="true"></div>
-
       <footer class="sidebar-footer">
+        <button id="footerLibraryButton" class="dock-action library-dock" type="button" title="Library" aria-label="Open library">&#9638;</button>
         <nav id="spaceDots" class="space-dock" aria-label="Spaces"></nav>
         <button id="newSpaceButton" class="dock-action" type="button" title="New Space" aria-label="New Space">+</button>
       </footer>
     </main>
 
-    <section id="spaceContextMenu" class="space-context-menu" aria-hidden="true">
+    <section id="tabContextMenu" class="context-menu tab-context-menu" aria-hidden="true">
+      <header class="context-header">
+        <span id="contextTabFavicon" class="context-glyph" aria-hidden="true">C</span>
+        <strong id="contextTabName">Tab</strong>
+      </header>
+      <button id="contextPinTabButton" class="context-action" type="button">Pin Tab</button>
+      <button id="contextFavoriteTabButton" class="context-action" type="button">Add to Favorites</button>
+      <button id="contextDuplicateTabButton" class="context-action" type="button">Duplicate Tab</button>
+      <label class="context-select-row">
+        <span>Move to Space</span>
+        <select id="contextMoveTabSelect" aria-label="Move tab to Space"></select>
+      </label>
+      <button id="contextCloseTabButton" class="context-action danger" type="button">Close Tab</button>
+    </section>
+
+    <section id="spaceContextMenu" class="context-menu space-context-menu" aria-hidden="true">
       <header class="context-header">
         <span id="contextSpaceGlyph" class="context-glyph" aria-hidden="true">S</span>
         <strong id="contextSpaceName">Space</strong>
@@ -84,8 +106,27 @@
       <button id="contextDeleteButton" class="context-action danger" type="button">Delete Space</button>
     </section>
 
-    <section id="settingsPanel" class="settings-panel" aria-hidden="true">
-      <header class="settings-header">
+    <section id="libraryPanel" class="overlay-panel" aria-hidden="true">
+      <header class="panel-header">
+        <div>
+          <p class="eyebrow">Canopy</p>
+          <h2>Library</h2>
+        </div>
+        <button id="closeLibraryButton" class="icon-button" type="button" title="Close library" aria-label="Close library">&#215;</button>
+      </header>
+      <nav class="segmented-control" aria-label="Library section">
+        <button id="historyTabButton" class="segment active" type="button">History</button>
+        <button id="downloadsTabButton" class="segment" type="button">Downloads</button>
+      </nav>
+      <div id="historyToolbar" class="library-toolbar">
+        <input id="historySearchInput" type="search" placeholder="Search history" aria-label="Search history">
+        <button id="clearHistoryButton" class="text-button" type="button">Clear</button>
+      </div>
+      <div id="libraryList" class="library-list"></div>
+    </section>
+
+    <section id="settingsPanel" class="overlay-panel" aria-hidden="true">
+      <header class="panel-header">
         <div>
           <p class="eyebrow">Canopy</p>
           <h2>Settings</h2>
@@ -104,14 +145,30 @@
             <span>Search engine</span>
             <span class="settings-value">Google</span>
           </div>
+          <button id="settingsHistoryButton" class="settings-row" type="button">
+            <span>History</span>
+            <span class="settings-value">&#8984;Y</span>
+          </button>
+          <button id="settingsDownloadsButton" class="settings-row" type="button">
+            <span>Downloads</span>
+            <span id="downloadCountValue" class="settings-value">0</span>
+          </button>
           <div class="settings-row static-row">
-            <span>Location access</span>
-            <span class="status-pill">Blocked</span>
+            <span>Page zoom</span>
+            <span class="zoom-controls">
+              <button id="zoomOutButton" class="zoom-button" type="button" title="Zoom out" aria-label="Zoom out">&#8722;</button>
+              <button id="zoomResetButton" class="zoom-reset" type="button">100%</button>
+              <button id="zoomInButton" class="zoom-button" type="button" title="Zoom in" aria-label="Zoom in">+</button>
+            </span>
           </div>
+          <button id="printButton" class="settings-row" type="button">
+            <span>Print page</span>
+            <span class="settings-value">&#8984;P</span>
+          </button>
         </section>
 
         <section class="settings-group">
-          <h3>Spaces</h3>
+          <h3>Spaces and tabs</h3>
           <div class="settings-row static-row">
             <span>Sidebar</span>
             <span class="status-pill enabled">Always on</span>
@@ -120,6 +177,38 @@
             <span>Create Space</span>
             <span class="settings-value">+</span>
           </button>
+          <button id="settingsReopenTabButton" class="settings-row" type="button">
+            <span>Reopen closed tab</span>
+            <span class="settings-value">&#8679;&#8984;T</span>
+          </button>
+        </section>
+
+        <section class="settings-group">
+          <h3>Privacy</h3>
+          <div class="settings-row static-row">
+            <span>Location prompts</span>
+            <span class="status-pill">Blocked</span>
+          </div>
+          <div class="settings-row static-row">
+            <span>Camera and microphone</span>
+            <span class="status-pill">Blocked</span>
+          </div>
+          <div class="settings-note">Canopy rejects website permission prompts by default so pages cannot repeatedly interrupt you.</div>
+          <button id="clearBrowsingDataButton" class="settings-row privacy-action" type="button">
+            <span>Clear browsing data</span>
+            <span class="settings-value">History, cookies, cache</span>
+          </button>
+        </section>
+
+        <section class="settings-group shortcut-group">
+          <h3>Keyboard</h3>
+          <div class="shortcut-row"><span>Address bar</span><kbd>&#8984;L</kbd></div>
+          <div class="shortcut-row"><span>New tab</span><kbd>&#8984;T</kbd></div>
+          <div class="shortcut-row"><span>Close tab</span><kbd>&#8984;W</kbd></div>
+          <div class="shortcut-row"><span>Find on page</span><kbd>&#8984;F</kbd></div>
+          <div class="shortcut-row"><span>Reopen tab</span><kbd>&#8679;&#8984;T</kbd></div>
+          <div class="shortcut-row"><span>Cycle tabs</span><kbd>Control Tab</kbd></div>
+          <div class="shortcut-row"><span>Cycle Spaces</span><kbd>&#8679;&#8984;[ ]</kbd></div>
         </section>
 
         <details class="advanced-settings">
@@ -141,6 +230,7 @@
       </div>
     </section>
 
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <script src="sidebar.js"></script>
   </body>
 </html>

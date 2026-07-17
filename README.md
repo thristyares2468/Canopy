@@ -54,9 +54,9 @@ pnpm native:install
 open ~/Applications/'Canopy Native.app'
 ```
 
-The native prototype downloads the pinned official `cef-project` source and CEF ARM64 binary into `~/Library/Caches/Canopy/cef-project`. Its window is composed from CEF BrowserViews, so there is no stock Chromium tab bar. The left sidebar is permanently visible and each Space owns a live Chromium browser instance. Space names, order, active Space, and last URL persist in `~/Library/Application Support/Canopy Native/workspace.tsv`.
+The native prototype downloads the pinned official `cef-project` source and CEF ARM64 binary into `~/Library/Caches/Canopy/cef-project`. Its window is composed from CEF BrowserViews, so there is no stock Chromium tab bar. The left sidebar is permanently visible and every Space owns a persistent collection of live Chromium tabs. Spaces, tabs, pinned tabs, global Favorites, closed-tab recovery, and ordering persist in `~/Library/Application Support/Canopy Native/workspace.tsv`.
 
-The first native milestone includes address/search navigation, back/forward/reload, a one-Space-per-gesture trackpad switcher, Space create/rename/delete, the St Andrew's home page, denied location/media prompts, and the Jim's Mowing compatibility workspace under **Settings > Advanced**. Jim's Mowing is loaded from `Contents/Resources/jims-game` inside the app; only multiplayer, account, and persistence traffic is sent to Railway.
+The native shell includes an address Command menu, back/forward/reload, multi-tab Spaces, drag reordering, a one-Space-per-gesture trackpad switcher, Space create/edit/delete, global Favorites, pinned tabs, history, downloads, find-on-page, page zoom, printing, keyboard navigation, popup-to-tab routing, and persistent closed-tab recovery. Location, camera, and microphone prompts are denied by default, while browsing data can be cleared from Canopy Settings. The Jim's Mowing compatibility workspace remains under **Settings > Advanced**; it is loaded from `Contents/Resources/jims-game` inside the app, and only multiplayer, account, and persistence traffic is sent to Railway.
 
 The native build stages the game from the sibling `fpsshooterserver` checkout by default. Override either input when building elsewhere:
 
@@ -66,7 +66,7 @@ CANOPY_JIMS_SERVER_URL=wss://your-server.example/ \
 pnpm native:install
 ```
 
-It intentionally remains a prototype while full multi-tab, downloads, history, bookmarks, password UI, and browser-update plumbing are ported from Chromium.
+It remains a prototype while password UI, signed auto-updates, accessibility polish, and a production-grade Chromium patch/update pipeline are completed.
 
 ## Checks
 
