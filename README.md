@@ -9,7 +9,7 @@ Canopy is a macOS browser built on Chromium. The repository contains both the cu
 - Persistent pinned pages and folders inside each Space
 - Today tabs with configurable Auto Archive and one-click restore
 - `Cmd+T` Command Bar for tabs, Spaces, history, commands, URLs, and Google searches
-- Sidebar-only, animated two-finger horizontal trackpad switching between Spaces
+- Sidebar-only, one-Space-per-gesture horizontal trackpad switching between Spaces
 - Per-Space names, colors, and icons
 - Air Traffic Control rules that route matching URLs into a chosen Space
 - Peek popup windows and side-by-side window layout
@@ -56,7 +56,7 @@ open ~/Applications/'Canopy Native.app'
 
 The native prototype downloads the pinned official `cef-project` source and CEF ARM64 binary into `~/Library/Caches/Canopy/cef-project`. Its window is composed from CEF BrowserViews, so there is no stock Chromium tab bar. The left sidebar is permanently visible and every Space owns a persistent collection of live Chromium tabs. Spaces, tabs, pinned tabs, global Favorites, closed-tab recovery, and ordering persist in `~/Library/Application Support/Canopy Native/workspace.tsv`.
 
-The native shell includes an address Command menu, back/forward/reload, multi-tab Spaces, drag reordering, a one-Space-per-gesture trackpad switcher, Space create/edit/delete, global Favorites, pinned tabs, history, downloads, find-on-page, page zoom, printing, keyboard navigation, popup-to-tab routing, and persistent closed-tab recovery. Location, camera, and microphone prompts are denied by default, while browsing data can be cleared from Canopy Settings. The Jim's Mowing compatibility workspace remains under **Settings > Advanced**; it is loaded from `Contents/Resources/jims-game` inside the app, and only multiplayer, account, and persistence traffic is sent to Railway.
+The native shell includes an address Command menu, back/forward/reload, multi-tab Spaces, drag reordering, a one-Space-per-gesture trackpad switcher, Space create/edit/delete, global Favorites, pinned tabs, history, downloads, find-on-page, page zoom, printing, keyboard navigation, popup-to-tab routing, persistent closed-tab recovery, and signed in-app updates. Location, camera, and microphone prompts are denied by default, while browsing data can be cleared from Canopy Settings. The Jim's Mowing compatibility workspace remains under **Settings > Advanced**; it is loaded from `Contents/Resources/jims-game` inside the app, and only multiplayer, account, and persistence traffic is sent to Railway.
 
 The native build stages the game from the sibling `fpsshooterserver` checkout by default. Override either input when building elsewhere:
 
@@ -66,7 +66,20 @@ CANOPY_JIMS_SERVER_URL=wss://your-server.example/ \
 pnpm native:install
 ```
 
-It remains a prototype while password UI, signed auto-updates, accessibility polish, and a production-grade Chromium patch/update pipeline are completed.
+### Publishing Native Updates
+
+Canopy uses Sparkle 2 for signed update checks. The first native build downloads the pinned Sparkle release and verifies its SHA-256 checksum. The update signing key is stored in the macOS login Keychain under the `Canopy` account; its private value must never be committed.
+
+For each release, increment both `native/version.txt` and `native/build-number.txt`, then run:
+
+```bash
+pnpm native:build
+pnpm native:package-update
+```
+
+Commit the generated `updates/appcast.xml`, create a matching GitHub release tag such as `v0.4.0`, and attach `release/native-updates/Canopy-Native-0.4.0.zip`. Existing installs can then use **Canopy > Check for Updates...** or **Settings > Check for updates**. Smooth distribution to other Macs still requires Apple Developer ID signing and notarization of the app archive.
+
+It remains a prototype while password UI, accessibility polish, and a production-grade Chromium patch/update pipeline are completed.
 
 ## Checks
 

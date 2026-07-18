@@ -10,6 +10,7 @@ namespace canopy {
 class CanopyWindow;
 
 class BrowserClient : public CefClient,
+                      public CefContextMenuHandler,
                       public CefDisplayHandler,
                       public CefDownloadHandler,
                       public CefKeyboardHandler,
@@ -23,6 +24,9 @@ class BrowserClient : public CefClient,
 
   BrowserClient(CanopyWindow* owner, Role role, int space_id, int tab_id);
 
+  CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override {
+    return this;
+  }
   CefRefPtr<CefDisplayHandler> GetDisplayHandler() override { return this; }
   CefRefPtr<CefDownloadHandler> GetDownloadHandler() override { return this; }
   CefRefPtr<CefKeyboardHandler> GetKeyboardHandler() override { return this; }
@@ -32,6 +36,23 @@ class BrowserClient : public CefClient,
     return this;
   }
   CefRefPtr<CefRequestHandler> GetRequestHandler() override { return this; }
+
+  void OnBeforeContextMenu(CefRefPtr<CefBrowser> browser,
+                           CefRefPtr<CefFrame> frame,
+                           CefRefPtr<CefContextMenuParams> params,
+                           CefRefPtr<CefMenuModel> model) override;
+  bool RunContextMenu(CefRefPtr<CefBrowser> browser,
+                      CefRefPtr<CefFrame> frame,
+                      CefRefPtr<CefContextMenuParams> params,
+                      CefRefPtr<CefMenuModel> model,
+                      CefRefPtr<CefRunContextMenuCallback> callback) override;
+  bool OnContextMenuCommand(CefRefPtr<CefBrowser> browser,
+                            CefRefPtr<CefFrame> frame,
+                            CefRefPtr<CefContextMenuParams> params,
+                            int command_id,
+                            EventFlags event_flags) override;
+  void OnContextMenuDismissed(CefRefPtr<CefBrowser> browser,
+                              CefRefPtr<CefFrame> frame) override;
 
   void OnAddressChange(CefRefPtr<CefBrowser> browser,
                        CefRefPtr<CefFrame> frame,
@@ -113,10 +134,14 @@ class BrowserClient : public CefClient,
       CefRefPtr<CefRequest> request) override;
 
  private:
+  enum class ContextTarget { kNone, kTab, kSpace };
+
   CanopyWindow* const owner_;
   const Role role_;
   const int space_id_;
   const int tab_id_;
+  ContextTarget context_target_ = ContextTarget::kNone;
+  int context_target_id_ = 0;
 
   IMPLEMENT_REFCOUNTING(BrowserClient);
   DISALLOW_COPY_AND_ASSIGN(BrowserClient);

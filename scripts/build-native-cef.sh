@@ -5,11 +5,20 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CEF_COMMIT="$(tr -d '[:space:]' < "$ROOT_DIR/native/cef-project.commit")"
 CEF_PROJECT_DIR="${CANOPY_CEF_PROJECT_DIR:-$HOME/Library/Caches/Canopy/cef-project}"
 CEF_BUILD_DIR="$CEF_PROJECT_DIR/build-canopy"
+CANOPY_VERSION="$(tr -d '[:space:]' < "$ROOT_DIR/native/version.txt")"
+CANOPY_BUILD_NUMBER="$(tr -d '[:space:]' < "$ROOT_DIR/native/build-number.txt")"
+CANOPY_SPARKLE_DIR="$($ROOT_DIR/scripts/download-sparkle.sh)"
 INSTALL_APP=0
+STAGING_DIR=""
 
 if [[ "${1:-}" == "--install" ]]; then
   INSTALL_APP=1
 fi
+
+cleanup() {
+  [[ -z "$STAGING_DIR" ]] || rm -rf "$STAGING_DIR"
+}
+trap cleanup EXIT
 
 if command -v cmake >/dev/null 2>&1; then
   CMAKE_BIN="$(command -v cmake)"
@@ -55,7 +64,10 @@ configure_cef() {
     -B "$CEF_BUILD_DIR" \
     -G Xcode \
     -DPROJECT_ARCH=arm64 \
-    -DWITH_EXAMPLES=On
+    -DWITH_EXAMPLES=On \
+    -DCANOPY_VERSION="$CANOPY_VERSION" \
+    -DCANOPY_BUILD_NUMBER="$CANOPY_BUILD_NUMBER" \
+    -DCANOPY_SPARKLE_DIR="$CANOPY_SPARKLE_DIR"
 }
 
 if ! configure_cef; then
@@ -67,21 +79,29 @@ if ! configure_cef; then
   configure_cef
 fi
 
+rm -rf "$CEF_BUILD_DIR/Release/Canopy.app"
 "$CMAKE_BIN" --build "$CEF_BUILD_DIR" \
   --config Release \
   --target Canopy
 
 mkdir -p "$ROOT_DIR/dist"
+STAGING_DIR="$(mktemp -d /tmp/canopy-native.XXXXXX)"
+STAGING_APP="$STAGING_DIR/Canopy Native.app"
+ditto "$CEF_BUILD_DIR/Release/Canopy.app" "$STAGING_APP"
+"$ROOT_DIR/scripts/sign-native-app.sh" "$STAGING_APP"
+
 rm -rf "$ROOT_DIR/dist/Canopy Native.app"
-ditto "$CEF_BUILD_DIR/Release/Canopy.app" "$ROOT_DIR/dist/Canopy Native.app"
-xattr -c "$ROOT_DIR/dist/Canopy Native.app" 2>/dev/null || true
+ditto "$STAGING_APP" "$ROOT_DIR/dist/Canopy Native.app"
+
+echo "Canopy $CANOPY_VERSION ($CANOPY_BUILD_NUMBER)"
 
 if [[ "$INSTALL_APP" == "1" ]]; then
   mkdir -p "$HOME/Applications"
   rm -rf "$HOME/Applications/Canopy Native.app"
-  ditto "$ROOT_DIR/dist/Canopy Native.app" \
+  ditto "$STAGING_APP" \
         "$HOME/Applications/Canopy Native.app"
-  xattr -c "$HOME/Applications/Canopy Native.app" 2>/dev/null || true
+  /usr/bin/codesign --verify --deep --strict --verbose=2 \
+    "$HOME/Applications/Canopy Native.app"
   echo "Installed: $HOME/Applications/Canopy Native.app"
 else
   echo "Built: $ROOT_DIR/dist/Canopy Native.app"

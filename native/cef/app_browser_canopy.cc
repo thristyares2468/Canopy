@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Canopy contributors.
 
 #include "examples/canopy/canopy_window.h"
+#include "examples/canopy/updater_bridge.h"
 #include "examples/shared/app_factory.h"
 
 #include <cstdlib>
@@ -50,6 +51,7 @@ class BrowserApp : public CefApp, public CefBrowserProcessHandler {
 
   void OnContextInitialized() override {
     CEF_REQUIRE_UI_THREAD();
+    StartUpdater();
     CefWindow::CreateTopLevelWindow(new CanopyWindow());
   }
 

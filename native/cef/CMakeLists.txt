@@ -4,6 +4,17 @@ if(NOT OS_MAC)
   message(FATAL_ERROR "The Canopy native prototype currently targets macOS.")
 endif()
 
+if(NOT CANOPY_SPARKLE_DIR OR
+   NOT EXISTS "${CANOPY_SPARKLE_DIR}/Sparkle.framework/Sparkle")
+  message(FATAL_ERROR "CANOPY_SPARKLE_DIR must point to an extracted Sparkle release.")
+endif()
+if(NOT CANOPY_VERSION)
+  set(CANOPY_VERSION "0.0.0")
+endif()
+if(NOT CANOPY_BUILD_NUMBER)
+  set(CANOPY_BUILD_NUMBER "0")
+endif()
+
 set(CANOPY_SRCS
   app_browser_canopy.cc
   browser_client.cc
@@ -11,6 +22,8 @@ set(CANOPY_SRCS
   canopy_window.cc
   canopy_window.h
   main_canopy.cc
+  updater_bridge.h
+  updater_bridge.mm
   )
 
 set(CANOPY_HELPER_SRCS
@@ -55,10 +68,23 @@ add_executable(${CANOPY_TARGET} MACOSX_BUNDLE
   )
 SET_EXAMPLE_EXECUTABLE_TARGET_PROPERTIES(${CANOPY_TARGET})
 add_dependencies(${CANOPY_TARGET} shared)
-target_link_libraries(${CANOPY_TARGET} shared)
+target_include_directories(${CANOPY_TARGET} PRIVATE
+  "${CANOPY_SPARKLE_DIR}/Sparkle.framework/Headers"
+  )
+target_compile_definitions(${CANOPY_TARGET} PRIVATE
+  CANOPY_VERSION="${CANOPY_VERSION}"
+  CANOPY_BUILD_NUMBER="${CANOPY_BUILD_NUMBER}"
+  )
+target_link_libraries(${CANOPY_TARGET}
+  shared
+  "${CANOPY_SPARKLE_DIR}/Sparkle.framework"
+  )
 set_target_properties(${CANOPY_TARGET} PROPERTIES
   RESOURCE "${SHARED_RESOURCES_SRCS}"
-  MACOSX_BUNDLE_INFO_PLIST "${SHARED_INFO_PLIST}"
+  MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in"
+  INSTALL_RPATH "@executable_path/../Frameworks"
+  BUILD_WITH_INSTALL_RPATH TRUE
+  XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "au.com.canopy.browser"
   )
 
 COPY_MAC_FRAMEWORK("${CANOPY_TARGET}" "${CEF_BINARY_DIR}" "${CANOPY_APP}")
@@ -74,6 +100,10 @@ foreach(_suffix_list ${CEF_HELPER_APP_SUFFIXES})
   set(_helper_info_plist
       "${CMAKE_CURRENT_BINARY_DIR}/helper-Info${_target_suffix}.plist.in")
   file(READ "${SHARED_HELPER_INFO_PLIST}" _plist_contents)
+  string(REPLACE
+         "org.cef.\${PRODUCT_NAME}.helper\${BUNDLE_ID_SUFFIX}"
+         "au.com.canopy.browser.helper\${BUNDLE_ID_SUFFIX}"
+         _plist_contents "${_plist_contents}")
   string(REPLACE "\${EXECUTABLE_NAME}" "${_helper_output_name}"
          _plist_contents "${_plist_contents}")
   string(REPLACE "\${PRODUCT_NAME}" "${_helper_output_name}"
@@ -89,6 +119,8 @@ foreach(_suffix_list ${CEF_HELPER_APP_SUFFIXES})
   set_target_properties(${_helper_target} PROPERTIES
     MACOSX_BUNDLE_INFO_PLIST "${_helper_info_plist}"
     OUTPUT_NAME "${_helper_output_name}"
+    XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER
+      "au.com.canopy.browser.helper${_plist_suffix}"
     )
 
   add_dependencies(${CANOPY_TARGET} "${_helper_target}")
@@ -115,6 +147,9 @@ add_custom_command(
           "${CANOPY_MENU_XIB}"
   COMMAND ${CMAKE_COMMAND} -E make_directory
           "${CANOPY_APP}/Contents/Resources/canopy"
+  COMMAND /usr/bin/ditto
+          "${CANOPY_SPARKLE_DIR}/Sparkle.framework"
+          "${CANOPY_APP}/Contents/Frameworks/Sparkle.framework"
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
           "${CMAKE_CURRENT_SOURCE_DIR}/resources/sidebar.html"
           "${CANOPY_APP}/Contents/Resources/canopy/sidebar.html"

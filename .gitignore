@@ -2,6 +2,7 @@ node_modules/
 dist/
 runtime/
 release/
+updates/*.zip
 test-results/
 playwright-report/
 .native-build/

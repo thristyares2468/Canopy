@@ -32,7 +32,7 @@ test("native sidebar locks a trackpad gesture to one Space change", () => {
   assert.match(source, /swipeLocked/);
   assert.match(source, /Math\.abs\(swipeDistance\) < 105/);
   assert.match(source, /720/);
-  assert.match(source, /action\(swipeDistance > 0 \? "previous" : "next"\)/);
+  assert.match(source, /action\(swipeDistance > 0 \? "next" : "previous"\)/);
 });
 
 test("native Spaces use a compact bottom dock with editable appearance", () => {
@@ -47,8 +47,9 @@ test("native Spaces use a compact bottom dock with editable appearance", () => {
   assert.match(nativeSource, /mystandrews\.saac\.qld\.edu\.au\/favicon\.ico/);
   assert.match(nativeSource, /www\.google\.com\/favicon\.ico/);
   assert.doesNotMatch(markup, /id="spaceList"/);
-  assert.match(markup, /id="spaceContextMenu"/);
-  assert.match(script, /addEventListener\("contextmenu"/);
+  assert.match(markup, /id="settingsSpaceColors"/);
+  assert.match(script, /const spaceThemes =/);
+  assert.match(script, /setProperty\("--surface", theme\.surface\)/);
   assert.match(script, /action\("appearance"/);
   assert.match(styles, /\.space-dock-button\.active/);
   assert.match(nativeSource, /UpdateSpaceAppearance/);
@@ -101,9 +102,25 @@ test("native tabs are persistent within Spaces and support browser workflows", (
   assert.match(markup, /id="pinnedTabs"/);
   assert.match(markup, /id="tabList"/);
   assert.match(script, /action\("pin-tab"/);
-  assert.match(script, /action\("move-tab"/);
   assert.match(script, /action\("reorder-tab"/);
   assert.match(script, /action\("reorder-space"/);
+  assert.match(script, /className = "tab-quick-actions"/);
+  assert.match(script, /tab-context\?id=/);
+});
+
+test("native tab and Space context menus route commands through CEF", () => {
+  const windowSource = read("native/cef/canopy_window.cc");
+  const clientHeader = read("native/cef/browser_client.h");
+  const clientSource = read("native/cef/browser_client.cc");
+
+  assert.match(clientHeader, /OnContextMenuCommand/);
+  assert.match(clientSource, /params->GetLinkUrl/);
+  assert.match(clientSource, /PopulateTabContextMenu/);
+  assert.match(clientSource, /PopulateSpaceContextMenu/);
+  assert.match(windowSource, /Move to Space/);
+  assert.match(windowSource, /HandleTabContextMenuCommand/);
+  assert.match(windowSource, /HandleSpaceContextMenuCommand/);
+  assert.match(windowSource, /window\.canopyPromptRenameSpace/);
 });
 
 test("native shell handles shortcuts, popups, history, favicons, and downloads", () => {
@@ -137,6 +154,9 @@ test("native build sources and resources are present", () => {
     "app_browser_canopy.cc",
     "browser_client.cc",
     "canopy_window.cc",
+    "updater_bridge.h",
+    "updater_bridge.mm",
+    "Info.plist.in",
     "main_canopy.cc",
     "resources/sidebar.html",
     "resources/sidebar.css",
@@ -146,6 +166,25 @@ test("native build sources and resources are present", () => {
   for (const relativePath of required) {
     assert.equal(fs.existsSync(path.join(nativeRoot, relativePath)), true, relativePath);
   }
+});
+
+test("native shell embeds a signed Sparkle update channel", () => {
+  const appSource = read("native/cef/app_browser_canopy.cc");
+  const windowSource = read("native/cef/canopy_window.cc");
+  const updaterSource = read("native/cef/updater_bridge.mm");
+  const markup = read("native/cef/resources/sidebar.html");
+  const plist = read("native/cef/Info.plist.in");
+  const cmake = read("native/cef/CMakeLists.txt");
+  const buildScript = read("scripts/build-native-cef.sh");
+
+  assert.match(appSource, /StartUpdater\(\)/);
+  assert.match(windowSource, /CheckForUpdates\(\)/);
+  assert.match(updaterSource, /SPUStandardUpdaterController/);
+  assert.match(markup, /id="checkUpdatesButton"/);
+  assert.match(plist, /<key>SUFeedURL<\/key>/);
+  assert.match(plist, /<key>SUPublicEDKey<\/key>/);
+  assert.match(cmake, /Sparkle\.framework/);
+  assert.match(buildScript, /download-sparkle\.sh/);
 });
 
 test("native sidebar resolves from the app bundle instead of CEF framework resources", () => {

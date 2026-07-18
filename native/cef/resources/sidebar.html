@@ -71,40 +71,8 @@
         <nav id="spaceDots" class="space-dock" aria-label="Spaces"></nav>
         <button id="newSpaceButton" class="dock-action" type="button" title="New Space" aria-label="New Space">+</button>
       </footer>
+
     </main>
-
-    <section id="tabContextMenu" class="context-menu tab-context-menu" aria-hidden="true">
-      <header class="context-header">
-        <span id="contextTabFavicon" class="context-glyph" aria-hidden="true">C</span>
-        <strong id="contextTabName">Tab</strong>
-      </header>
-      <button id="contextPinTabButton" class="context-action" type="button">Pin Tab</button>
-      <button id="contextFavoriteTabButton" class="context-action" type="button">Add to Favorites</button>
-      <button id="contextDuplicateTabButton" class="context-action" type="button">Duplicate Tab</button>
-      <label class="context-select-row">
-        <span>Move to Space</span>
-        <select id="contextMoveTabSelect" aria-label="Move tab to Space"></select>
-      </label>
-      <button id="contextCloseTabButton" class="context-action danger" type="button">Close Tab</button>
-    </section>
-
-    <section id="spaceContextMenu" class="context-menu space-context-menu" aria-hidden="true">
-      <header class="context-header">
-        <span id="contextSpaceGlyph" class="context-glyph" aria-hidden="true">S</span>
-        <strong id="contextSpaceName">Space</strong>
-      </header>
-      <button id="contextRenameButton" class="context-action" type="button">Rename Space</button>
-      <button id="contextLabelButton" class="context-action" type="button">Change Label</button>
-      <div class="context-colors" role="group" aria-label="Space colour">
-        <button class="color-swatch mint" type="button" data-color="mint" title="Mint" aria-label="Mint"></button>
-        <button class="color-swatch blue" type="button" data-color="blue" title="Blue" aria-label="Blue"></button>
-        <button class="color-swatch violet" type="button" data-color="violet" title="Violet" aria-label="Violet"></button>
-        <button class="color-swatch rose" type="button" data-color="rose" title="Rose" aria-label="Rose"></button>
-        <button class="color-swatch amber" type="button" data-color="amber" title="Amber" aria-label="Amber"></button>
-        <button class="color-swatch teal" type="button" data-color="teal" title="Teal" aria-label="Teal"></button>
-      </div>
-      <button id="contextDeleteButton" class="context-action danger" type="button">Delete Space</button>
-    </section>
 
     <section id="libraryPanel" class="overlay-panel" aria-hidden="true">
       <header class="panel-header">
@@ -181,6 +149,17 @@
             <span>Reopen closed tab</span>
             <span class="settings-value">&#8679;&#8984;T</span>
           </button>
+          <div class="settings-theme-row">
+            <span>Active Space theme</span>
+            <div id="settingsSpaceColors" class="settings-space-colors" role="group" aria-label="Active Space theme">
+              <button class="color-swatch mint" type="button" data-color="mint" title="Mint" aria-label="Use Mint theme"></button>
+              <button class="color-swatch blue" type="button" data-color="blue" title="Blue" aria-label="Use Blue theme"></button>
+              <button class="color-swatch violet" type="button" data-color="violet" title="Violet" aria-label="Use Violet theme"></button>
+              <button class="color-swatch rose" type="button" data-color="rose" title="Rose" aria-label="Use Rose theme"></button>
+              <button class="color-swatch amber" type="button" data-color="amber" title="Amber" aria-label="Use Amber theme"></button>
+              <button class="color-swatch teal" type="button" data-color="teal" title="Teal" aria-label="Use Teal theme"></button>
+            </div>
+          </div>
         </section>
 
         <section class="settings-group">
@@ -209,6 +188,19 @@
           <div class="shortcut-row"><span>Reopen tab</span><kbd>&#8679;&#8984;T</kbd></div>
           <div class="shortcut-row"><span>Cycle tabs</span><kbd>Control Tab</kbd></div>
           <div class="shortcut-row"><span>Cycle Spaces</span><kbd>&#8679;&#8984;[ ]</kbd></div>
+        </section>
+
+        <section class="settings-group">
+          <h3>About Canopy</h3>
+          <div class="settings-row static-row">
+            <span>Version</span>
+            <span id="appVersionValue" class="settings-value">0.0.0 (0)</span>
+          </div>
+          <button id="checkUpdatesButton" class="settings-row" type="button">
+            <span>Check for updates</span>
+            <span class="settings-value">&#8635;</span>
+          </button>
+          <div class="settings-note">Canopy securely checks the signed update feed and installs approved releases without replacing the app manually.</div>
         </section>
 
         <details class="advanced-settings">

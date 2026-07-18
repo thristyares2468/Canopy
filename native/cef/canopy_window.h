@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "include/cef_menu_model.h"
 #include "include/views/cef_browser_view.h"
 #include "include/views/cef_browser_view_delegate.h"
 #include "include/views/cef_window.h"
@@ -51,6 +52,10 @@ class CanopyWindow : public CefWindowDelegate,
                          bool is_canceled,
                          bool is_in_progress);
   void HandleSidebarAction(const std::string& url);
+  bool PopulateTabContextMenu(int tab_id, CefRefPtr<CefMenuModel> model);
+  bool PopulateSpaceContextMenu(int space_id, CefRefPtr<CefMenuModel> model);
+  bool HandleTabContextMenuCommand(int tab_id, int command_id);
+  bool HandleSpaceContextMenuCommand(int space_id, int command_id);
   bool HandleKeyboardShortcut(int key_code, bool shift, bool control, bool alt);
   void OpenUrlInNewTab(int source_space_id,
                        const std::string& url,
@@ -155,6 +160,7 @@ class CanopyWindow : public CefWindowDelegate,
   void RecordHistory(const Tab& tab);
   void ClearHistory();
   void ClearBrowsingData();
+  void ExecuteSidebarJavaScript(const std::string& script);
   void PushSidebarState();
   void UpdateWindowTitle();
 

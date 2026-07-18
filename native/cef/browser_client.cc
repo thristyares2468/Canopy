@@ -21,6 +21,19 @@ namespace {
 
 constexpr char kJimOrigin[] = "https://jims.canopy.internal";
 
+bool ParseContextTarget(const std::string& url,
+                        const std::string& path,
+                        int* target_id) {
+  const std::string prefix = "https://canopy.internal/" + path + "?id=";
+  if (!target_id || url.rfind(prefix, 0) != 0) return false;
+  const std::string value = url.substr(prefix.size());
+  char* end = nullptr;
+  const long parsed = std::strtol(value.c_str(), &end, 10);
+  if (!end || *end != '\0' || parsed < 1 || parsed > 1000000) return false;
+  *target_id = static_cast<int>(parsed);
+  return true;
+}
+
 bool IsJimResource(const std::string& url) {
   return url == kJimOrigin || url.rfind(std::string(kJimOrigin) + "/", 0) == 0;
 }
@@ -121,6 +134,71 @@ BrowserClient::BrowserClient(CanopyWindow* owner,
                              int space_id,
                              int tab_id)
     : owner_(owner), role_(role), space_id_(space_id), tab_id_(tab_id) {}
+
+void BrowserClient::OnBeforeContextMenu(
+    CefRefPtr<CefBrowser> browser,
+    CefRefPtr<CefFrame> frame,
+    CefRefPtr<CefContextMenuParams> params,
+    CefRefPtr<CefMenuModel> model) {
+  CEF_REQUIRE_UI_THREAD();
+  if (role_ != Role::kSidebar) return;
+
+  context_target_ = ContextTarget::kNone;
+  context_target_id_ = 0;
+  model->Clear();
+  const std::string link_url = params->GetLinkUrl().ToString();
+  if (ParseContextTarget(link_url, "tab-context", &context_target_id_) &&
+      owner_->PopulateTabContextMenu(context_target_id_, model)) {
+    context_target_ = ContextTarget::kTab;
+  } else if (ParseContextTarget(link_url, "space-context",
+                                &context_target_id_) &&
+             owner_->PopulateSpaceContextMenu(context_target_id_, model)) {
+    context_target_ = ContextTarget::kSpace;
+  } else {
+    context_target_id_ = 0;
+  }
+}
+
+bool BrowserClient::RunContextMenu(
+    CefRefPtr<CefBrowser> browser,
+    CefRefPtr<CefFrame> frame,
+    CefRefPtr<CefContextMenuParams> params,
+    CefRefPtr<CefMenuModel> model,
+    CefRefPtr<CefRunContextMenuCallback> callback) {
+  CEF_REQUIRE_UI_THREAD();
+  if (role_ != Role::kSidebar) {
+    return false;
+  }
+  if (context_target_ != ContextTarget::kNone && model->GetCount() > 0) {
+    return false;
+  }
+  callback->Cancel();
+  return true;
+}
+
+bool BrowserClient::OnContextMenuCommand(
+    CefRefPtr<CefBrowser> browser,
+    CefRefPtr<CefFrame> frame,
+    CefRefPtr<CefContextMenuParams> params,
+    int command_id,
+    EventFlags event_flags) {
+  CEF_REQUIRE_UI_THREAD();
+  if (role_ != Role::kSidebar || context_target_id_ == 0) return false;
+  if (context_target_ == ContextTarget::kTab) {
+    return owner_->HandleTabContextMenuCommand(context_target_id_, command_id);
+  }
+  if (context_target_ == ContextTarget::kSpace) {
+    return owner_->HandleSpaceContextMenuCommand(context_target_id_, command_id);
+  }
+  return false;
+}
+
+void BrowserClient::OnContextMenuDismissed(CefRefPtr<CefBrowser> browser,
+                                           CefRefPtr<CefFrame> frame) {
+  CEF_REQUIRE_UI_THREAD();
+  context_target_ = ContextTarget::kNone;
+  context_target_id_ = 0;
+}
 
 void BrowserClient::OnAddressChange(CefRefPtr<CefBrowser> browser,
                                     CefRefPtr<CefFrame> frame,

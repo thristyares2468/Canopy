@@ -10,26 +10,45 @@
       "newTabButton", "renameSpaceButton", "deleteSpaceButton", "newSpaceButton",
       "settingsNewSpaceButton", "settingsReopenTabButton", "settingsHistoryButton",
       "settingsDownloadsButton", "downloadCountValue", "settingsHomeButton",
-      "favoritesList", "jimButton", "spaceContextMenu", "contextSpaceGlyph",
-      "contextSpaceName", "contextRenameButton", "contextLabelButton",
-      "contextDeleteButton", "tabContextMenu", "contextTabFavicon", "contextTabName",
-      "contextPinTabButton", "contextFavoriteTabButton", "contextDuplicateTabButton", "contextMoveTabSelect",
-      "contextCloseTabButton", "historyTabButton", "downloadsTabButton", "historyToolbar",
+      "favoritesList", "jimButton", "settingsSpaceColors",
+      "historyTabButton", "downloadsTabButton", "historyToolbar",
       "historySearchInput", "clearHistoryButton", "libraryList", "toast", "commandMenu",
       "commandResults", "findBar", "findInput", "findPreviousButton", "findNextButton",
       "closeFindButton", "zoomOutButton", "zoomResetButton", "zoomInButton", "printButton",
-      "clearBrowsingDataButton"
+      "clearBrowsingDataButton", "checkUpdatesButton", "appVersionValue"
     ].map((id) => [id, document.querySelector(`#${id}`)])
   );
 
-  const spaceColors = {
-    mint: "#6ad99d",
-    blue: "#73aef5",
-    violet: "#b693ef",
-    rose: "#ec8eaf",
-    amber: "#efb76e",
-    teal: "#68ceca"
+  const spaceThemes = {
+    mint: {
+      accent: "#6ad99d", surface: "#18342c", raised: "#24483d",
+      active: "#e5f7ed", muted: "#a8c3b8", ink: "#163127"
+    },
+    blue: {
+      accent: "#73aef5", surface: "#1c2f46", raised: "#284560",
+      active: "#e8f1fc", muted: "#adc2da", ink: "#172c45"
+    },
+    violet: {
+      accent: "#b693ef", surface: "#302749", raised: "#43355f",
+      active: "#f0eafd", muted: "#c5b6dd", ink: "#34224f"
+    },
+    rose: {
+      accent: "#ec8eaf", surface: "#442837", raised: "#5b3548",
+      active: "#fdebf1", muted: "#d9b3c1", ink: "#4a2232"
+    },
+    amber: {
+      accent: "#efb76e", surface: "#433321", raised: "#5b452d",
+      active: "#fff1dc", muted: "#d9c1a0", ink: "#4a3419"
+    },
+    teal: {
+      accent: "#68ceca", surface: "#1a393b", raised: "#285052",
+      active: "#e3f8f7", muted: "#a8cfcd", ink: "#183b3c"
+    }
   };
+
+  const spaceColors = Object.fromEntries(
+    Object.entries(spaceThemes).map(([name, theme]) => [name, theme.accent])
+  );
 
   let state = {
     activeSpaceId: 0,
@@ -47,14 +66,14 @@
     loading: false,
     canGoBack: false,
     canGoForward: false,
-    zoomPercent: 100
+    zoomPercent: 100,
+    appVersion: "0.0.0",
+    appBuild: "0"
   };
 
   let swipeDistance = 0;
   let swipeLocked = false;
   let swipeResetTimer = 0;
-  let contextSpaceId = 0;
-  let contextTabId = 0;
   let draggedTabId = 0;
   let draggedSpaceId = 0;
   let libraryKind = "history";
@@ -76,16 +95,7 @@
     return state.tabs.find((tab) => tab.active) || state.tabs[0];
   }
 
-  function contextSpace() {
-    return state.spaces.find((space) => space.id === contextSpaceId);
-  }
-
-  function contextTab() {
-    return state.tabs.find((tab) => tab.id === contextTabId);
-  }
-
-  function activeUrlIsFavorite() {
-    const tab = contextTab();
+  function tabIsFavorite(tab) {
     return Boolean(tab && state.favorites.some((favorite) => favorite.url === tab.url));
   }
 
@@ -131,6 +141,27 @@
     return container;
   }
 
+  function makeQuickAction(symbol, label, handler) {
+    const control = document.createElement("span");
+    control.className = "tab-quick-action";
+    control.title = label;
+    control.setAttribute("role", "button");
+    control.setAttribute("aria-label", label);
+    control.tabIndex = 0;
+    control.draggable = false;
+    control.textContent = symbol;
+    const activate = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      handler();
+    };
+    control.addEventListener("click", activate);
+    control.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") activate(event);
+    });
+    return control;
+  }
+
   function spaceGlyph(name) {
     const normalized = String(name || "").trim().toLowerCase();
     if (/school|saac|study/.test(normalized)) return "\u25a4";
@@ -144,69 +175,9 @@
     return space?.label || spaceGlyph(space?.name);
   }
 
-  function setContextMenu(menu, open) {
-    const visible = Boolean(open);
-    menu.classList.toggle("open", visible);
-    menu.setAttribute("aria-hidden", String(!visible));
-  }
-
-  function closeContextMenus() {
-    contextSpaceId = 0;
-    contextTabId = 0;
-    setContextMenu(elements.spaceContextMenu, false);
-    setContextMenu(elements.tabContextMenu, false);
-  }
-
-  function openSpaceContext(spaceId) {
-    closeContextMenus();
-    contextSpaceId = spaceId;
-    const space = contextSpace();
-    if (!space) return;
-    elements.contextSpaceName.textContent = space.name;
-    elements.contextSpaceGlyph.textContent = displayLabel(space);
-    elements.contextDeleteButton.disabled = state.spaces.length <= 1;
-    elements.spaceContextMenu.style.setProperty(
-      "--context-accent",
-      spaceColors[space.color] || spaceColors.mint
-    );
-    document.querySelectorAll(".color-swatch").forEach((swatch) => {
-      swatch.classList.toggle("selected", swatch.dataset.color === space.color);
-    });
-    setContextMenu(elements.spaceContextMenu, true);
-  }
-
-  function openTabContext(tabId) {
-    closeContextMenus();
-    contextTabId = tabId;
-    const tab = contextTab();
-    if (!tab) return;
-    elements.contextTabName.textContent = displayTitle(tab);
-    elements.contextTabFavicon.replaceChildren(makeFavicon(tab, "context-favicon-inner"));
-    elements.contextPinTabButton.textContent = tab.pinned ? "Unpin Tab" : "Pin Tab";
-    elements.contextFavoriteTabButton.textContent = activeUrlIsFavorite()
-      ? "Remove from Favorites"
-      : "Add to Favorites";
-    elements.contextFavoriteTabButton.disabled =
-      !activeUrlIsFavorite() && state.favorites.length >= 8;
-    elements.contextMoveTabSelect.replaceChildren(
-      Object.assign(document.createElement("option"), {
-        value: "",
-        textContent: "Choose a Space"
-      }),
-      ...state.spaces
-        .filter((space) => space.id !== state.activeSpaceId)
-        .map((space) => Object.assign(document.createElement("option"), {
-          value: String(space.id),
-          textContent: space.name
-        }))
-    );
-    elements.contextMoveTabSelect.disabled = state.spaces.length <= 1;
-    setContextMenu(elements.tabContextMenu, true);
-  }
-
   function makePinnedTab(tab) {
-    const button = document.createElement("button");
-    button.type = "button";
+    const button = document.createElement("a");
+    button.href = `https://canopy.internal/tab-context?id=${tab.id}`;
     button.className = `pinned-tab${tab.active ? " active" : ""}`;
     button.title = displayTitle(tab);
     button.setAttribute("aria-label", `Open ${displayTitle(tab)}`);
@@ -217,10 +188,18 @@
     activity.className = `tab-activity${tab.loading ? " visible" : ""}`;
     activity.setAttribute("aria-hidden", "true");
     button.append(activity);
-    button.addEventListener("click", () => action("switch-tab", { id: tab.id }));
-    button.addEventListener("contextmenu", (event) => {
+    const actions = document.createElement("span");
+    actions.className = "pinned-quick-actions";
+    actions.append(
+      makeQuickAction(tabIsFavorite(tab) ? "\u2605" : "\u2606", "Toggle Favorite", () => action("toggle-favorite", { id: tab.id })),
+      makeQuickAction("\u25a0", "Unpin Tab", () => action("pin-tab", { id: tab.id })),
+      makeQuickAction("\u29c9", "Duplicate Tab", () => action("duplicate-tab", { id: tab.id })),
+      makeQuickAction("\u00d7", "Close Tab", () => action("close-tab", { id: tab.id }))
+    );
+    button.append(actions);
+    button.addEventListener("click", (event) => {
       event.preventDefault();
-      openTabContext(tab.id);
+      action("switch-tab", { id: tab.id });
     });
     button.addEventListener("dragstart", (event) => {
       draggedTabId = tab.id;
@@ -245,8 +224,8 @@
   }
 
   function makeTabRow(tab) {
-    const row = document.createElement("button");
-    row.type = "button";
+    const row = document.createElement("a");
+    row.href = `https://canopy.internal/tab-context?id=${tab.id}`;
     row.className = `tab-row${tab.active ? " active" : ""}`;
     row.setAttribute("role", "tab");
     row.setAttribute("aria-selected", String(Boolean(tab.active)));
@@ -278,11 +257,18 @@
       event.stopPropagation();
       action("close-tab", { id: tab.id });
     });
+    const actions = document.createElement("span");
+    actions.className = "tab-quick-actions";
+    actions.append(
+      makeQuickAction(tabIsFavorite(tab) ? "\u2605" : "\u2606", "Toggle Favorite", () => action("toggle-favorite", { id: tab.id })),
+      makeQuickAction(tab.pinned ? "\u25a0" : "\u25a1", tab.pinned ? "Unpin Tab" : "Pin Tab", () => action("pin-tab", { id: tab.id })),
+      makeQuickAction("\u29c9", "Duplicate Tab", () => action("duplicate-tab", { id: tab.id }))
+    );
+    row.append(actions);
     row.append(close);
-    row.addEventListener("click", () => action("switch-tab", { id: tab.id }));
-    row.addEventListener("contextmenu", (event) => {
+    row.addEventListener("click", (event) => {
       event.preventDefault();
-      openTabContext(tab.id);
+      action("switch-tab", { id: tab.id });
     });
     row.addEventListener("dragstart", (event) => {
       draggedTabId = tab.id;
@@ -308,20 +294,26 @@
 
   function renderSpaces() {
     const active = activeSpace();
+    const theme = spaceThemes[active?.color] || spaceThemes.mint;
     elements.spaceName.textContent = active?.name || "Canopy";
     elements.spaceGlyph.textContent = displayLabel(active);
     elements.spaceTabCount.textContent = `${state.tabs.length} ${state.tabs.length === 1 ? "tab" : "tabs"}`;
-    document.documentElement.style.setProperty(
-      "--space-accent",
-      spaceColors[active?.color] || spaceColors.mint
-    );
+    document.documentElement.style.setProperty("--space-accent", theme.accent);
+    document.documentElement.style.setProperty("--surface", theme.surface);
+    document.documentElement.style.setProperty("--surface-raised", theme.raised);
+    document.documentElement.style.setProperty("--surface-active", theme.active);
+    document.documentElement.style.setProperty("--muted", theme.muted);
+    document.documentElement.style.setProperty("--ink", theme.ink);
+    elements.settingsSpaceColors.querySelectorAll(".color-swatch").forEach((swatch) => {
+      swatch.classList.toggle("selected", swatch.dataset.color === (active?.color || "mint"));
+    });
     elements.deleteSpaceButton.disabled = state.spaces.length <= 1;
     elements.newSpaceButton.disabled = state.spaces.length >= state.maximumSpaces;
 
     elements.spaceDots.replaceChildren(
       ...state.spaces.map((space) => {
-        const button = document.createElement("button");
-        button.type = "button";
+        const button = document.createElement("a");
+        button.href = `https://canopy.internal/space-context?id=${space.id}`;
         button.className = `space-dock-button${space.id === state.activeSpaceId ? " active" : ""}`;
         button.title = `${space.name} (${space.tabCount || 0})`;
         button.dataset.spaceId = String(space.id);
@@ -335,11 +327,9 @@
           glyph.textContent = displayLabel(space);
           button.append(glyph);
         }
-        button.addEventListener("click", () => action("switch", { id: space.id }));
-        button.addEventListener("contextmenu", (event) => {
+        button.addEventListener("click", (event) => {
           event.preventDefault();
-          event.stopPropagation();
-          openSpaceContext(space.id);
+          action("switch", { id: space.id });
         });
         button.addEventListener("dragstart", (event) => {
           draggedSpaceId = space.id;
@@ -400,6 +390,7 @@
     elements.reloadButton.innerHTML = state.loading ? "&#215;" : "&#8635;";
     elements.reloadButton.title = state.loading ? "Stop" : "Reload";
     elements.zoomResetButton.textContent = `${state.zoomPercent || 100}%`;
+    elements.appVersionValue.textContent = `${state.appVersion || "0.0.0"} (${state.appBuild || "0"})`;
     if (document.activeElement !== elements.addressInput) {
       elements.addressInput.value = url;
     }
@@ -655,7 +646,6 @@
   }
 
   function setOverlayOpen(panel, open) {
-    if (open) closeContextMenus();
     panel.classList.toggle("open", open);
     panel.setAttribute("aria-hidden", String(!open));
   }
@@ -705,6 +695,29 @@
   window.canopyOpenSettings = () => setSettingsOpen(true);
   window.canopyOpenLibrary = (kind = "history") => setLibraryOpen(true, kind);
   window.canopyOpenFind = () => setFindOpen(true);
+  window.canopyPromptRenameSpace = (spaceId) => {
+    const space = state.spaces.find((entry) => entry.id === Number(spaceId));
+    if (!space) return;
+    const name = window.prompt("Rename Space", space.name);
+    if (name?.trim() && name.trim() !== space.name) {
+      action("rename", { id: space.id, name: name.trim() });
+    }
+  };
+  window.canopyPromptSpaceLabel = (spaceId) => {
+    const space = state.spaces.find((entry) => entry.id === Number(spaceId));
+    if (!space) return;
+    const requested = window.prompt("Space label (up to 3 characters)", displayLabel(space));
+    if (requested !== null) {
+      const label = Array.from(requested.trim()).slice(0, 3).join("");
+      action("appearance", { id: space.id, label, color: space.color || "mint" });
+    }
+  };
+  window.canopyConfirmDeleteSpace = (spaceId) => {
+    const space = state.spaces.find((entry) => entry.id === Number(spaceId));
+    if (space && state.spaces.length > 1 && window.confirm(`Delete ${space.name}?`)) {
+      action("delete", { id: space.id });
+    }
+  };
 
   elements.addressForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -748,17 +761,11 @@
   });
   elements.renameSpaceButton.addEventListener("click", () => {
     const space = activeSpace();
-    if (!space) return;
-    const name = window.prompt("Rename Space", space.name);
-    if (name?.trim() && name.trim() !== space.name) {
-      action("rename", { id: space.id, name: name.trim() });
-    }
+    if (space) window.canopyPromptRenameSpace(space.id);
   });
   elements.deleteSpaceButton.addEventListener("click", () => {
     const space = activeSpace();
-    if (space && state.spaces.length > 1 && window.confirm(`Delete ${space.name}?`)) {
-      action("delete", { id: space.id });
-    }
+    if (space) window.canopyConfirmDeleteSpace(space.id);
   });
 
   elements.settingsButton.addEventListener("click", () => setSettingsOpen(true));
@@ -782,36 +789,9 @@
     setSettingsOpen(false);
     action("jim");
   });
-
-  elements.contextRenameButton.addEventListener("click", () => {
-    const space = contextSpace();
-    if (!space) return;
-    const name = window.prompt("Rename Space", space.name);
-    if (name?.trim() && name.trim() !== space.name) {
-      action("rename", { id: space.id, name: name.trim() });
-    }
-    closeContextMenus();
-  });
-  elements.contextLabelButton.addEventListener("click", () => {
-    const space = contextSpace();
-    if (!space) return;
-    const requested = window.prompt("Space label (up to 3 characters)", displayLabel(space));
-    if (requested !== null) {
-      const label = Array.from(requested.trim()).slice(0, 3).join("");
-      action("appearance", { id: space.id, label, color: space.color || "mint" });
-    }
-    closeContextMenus();
-  });
-  elements.contextDeleteButton.addEventListener("click", () => {
-    const space = contextSpace();
-    if (space && state.spaces.length > 1 && window.confirm(`Delete ${space.name}?`)) {
-      action("delete", { id: space.id });
-    }
-    closeContextMenus();
-  });
-  document.querySelectorAll(".color-swatch").forEach((swatch) => {
+  elements.settingsSpaceColors.querySelectorAll(".color-swatch").forEach((swatch) => {
     swatch.addEventListener("click", () => {
-      const space = contextSpace();
+      const space = activeSpace();
       if (space && swatch.dataset.color) {
         action("appearance", {
           id: space.id,
@@ -819,30 +799,7 @@
           color: swatch.dataset.color
         });
       }
-      closeContextMenus();
     });
-  });
-
-  elements.contextPinTabButton.addEventListener("click", () => {
-    if (contextTabId) action("pin-tab", { id: contextTabId });
-    closeContextMenus();
-  });
-  elements.contextFavoriteTabButton.addEventListener("click", () => {
-    if (contextTabId) action("toggle-favorite", { id: contextTabId });
-    closeContextMenus();
-  });
-  elements.contextDuplicateTabButton.addEventListener("click", () => {
-    if (contextTabId) action("duplicate-tab", { id: contextTabId });
-    closeContextMenus();
-  });
-  elements.contextCloseTabButton.addEventListener("click", () => {
-    if (contextTabId) action("close-tab", { id: contextTabId });
-    closeContextMenus();
-  });
-  elements.contextMoveTabSelect.addEventListener("change", () => {
-    const target = Number(elements.contextMoveTabSelect.value);
-    if (contextTabId && target) action("move-tab", { id: contextTabId, space: target });
-    closeContextMenus();
   });
 
   elements.findBar.addEventListener("submit", (event) => {
@@ -866,16 +823,13 @@
       showToast("Browsing data cleared");
     }
   });
-  document.addEventListener("click", (event) => {
-    if (!elements.spaceContextMenu.contains(event.target) &&
-        !elements.tabContextMenu.contains(event.target)) {
-      closeContextMenus();
-    }
+  elements.checkUpdatesButton.addEventListener("click", () => {
+    action("check-updates");
+    showToast("Checking for updates...");
   });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       if (!elements.findBar.hidden) setFindOpen(false);
-      closeContextMenus();
       setSettingsOpen(false);
       setLibraryOpen(false);
     }
@@ -900,7 +854,7 @@
     }
 
     swipeLocked = true;
-    action(swipeDistance > 0 ? "previous" : "next");
+    action(swipeDistance > 0 ? "next" : "previous");
     swipeDistance = 0;
     window.setTimeout(() => {
       swipeLocked = false;

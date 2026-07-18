@@ -3,6 +3,7 @@
 #include "examples/canopy/canopy_window.h"
 
 #include "examples/canopy/browser_client.h"
+#include "examples/canopy/updater_bridge.h"
 
 #include <algorithm>
 #include <cctype>
@@ -11,6 +12,7 @@
 #include <ctime>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <sstream>
 #include <utility>
 
@@ -33,10 +35,33 @@ constexpr size_t kMaximumClosedTabs = 20;
 constexpr size_t kMaximumFavorites = 8;
 constexpr size_t kMaximumHistoryEntries = 250;
 constexpr size_t kMaximumDownloads = 40;
+constexpr int kMenuPinTab = 27001;
+constexpr int kMenuFavoriteTab = 27002;
+constexpr int kMenuDuplicateTab = 27003;
+constexpr int kMenuMoveTab = 27004;
+constexpr int kMenuCloseTab = 27005;
+constexpr int kMenuRenameSpace = 27101;
+constexpr int kMenuLabelSpace = 27102;
+constexpr int kMenuSpaceTheme = 27103;
+constexpr int kMenuDeleteSpace = 27104;
+constexpr int kMenuSpaceThemeBase = 27200;
+constexpr int kMenuMoveTabToSpaceBase = 27300;
 constexpr char kHomeUrl[] = "https://mystandrews.saac.qld.edu.au/";
 constexpr char kSearchUrl[] = "https://www.google.com/";
 constexpr char kJimUrl[] = "https://jims.canopy.internal/";
 constexpr char kActionPrefix[] = "https://canopy.internal/";
+constexpr const char* kSpaceColors[] = {
+    "mint", "blue", "violet", "rose", "amber", "teal"};
+constexpr const char* kSpaceColorLabels[] = {
+    "Mint", "Blue", "Violet", "Rose", "Amber", "Teal"};
+
+#ifndef CANOPY_VERSION
+#define CANOPY_VERSION "0.0.0"
+#endif
+
+#ifndef CANOPY_BUILD_NUMBER
+#define CANOPY_BUILD_NUMBER "0"
+#endif
 
 std::string Trim(std::string value) {
   const auto not_space = [](unsigned char character) {
@@ -65,9 +90,7 @@ std::string SanitizeLabel(std::string value) {
 }
 
 std::string SanitizeColor(const std::string& value) {
-  static constexpr const char* kAllowedColors[] = {
-      "mint", "blue", "violet", "rose", "amber", "teal"};
-  for (const char* color : kAllowedColors) {
+  for (const char* color : kSpaceColors) {
     if (value == color) {
       return value;
     }
@@ -468,7 +491,132 @@ void CanopyWindow::HandleSidebarAction(const std::string& url) {
     ClearHistory();
   } else if (action == "clear-browsing-data") {
     ClearBrowsingData();
+  } else if (action == "check-updates") {
+    CheckForUpdates();
   }
+}
+
+bool CanopyWindow::PopulateTabContextMenu(
+    int tab_id,
+    CefRefPtr<CefMenuModel> model) {
+  CEF_REQUIRE_UI_THREAD();
+  Space* space = ActiveSpace();
+  Tab* tab = space ? FindTab(*space, tab_id) : nullptr;
+  if (!model || !space || !tab || tab->retired) return false;
+
+  const bool favorite =
+      std::any_of(favorites_.begin(), favorites_.end(), [tab](const Favorite& entry) {
+        return entry.url == tab->url;
+      });
+  model->AddItem(kMenuPinTab, tab->pinned ? "Unpin Tab" : "Pin Tab");
+  model->AddItem(kMenuFavoriteTab,
+                 favorite ? "Remove from Favorites" : "Add to Favorites");
+  model->SetEnabled(kMenuFavoriteTab,
+                    favorite || favorites_.size() < kMaximumFavorites);
+  model->AddItem(kMenuDuplicateTab, "Duplicate Tab");
+
+  CefRefPtr<CefMenuModel> move_menu =
+      model->AddSubMenu(kMenuMoveTab, "Move to Space");
+  bool has_move_target = false;
+  int move_index = 0;
+  for (const Space& target : spaces_) {
+    if (target.retired || target.id == space->id) continue;
+    move_menu->AddItem(kMenuMoveTabToSpaceBase + move_index, target.name);
+    ++move_index;
+    has_move_target = true;
+  }
+  model->SetEnabled(kMenuMoveTab, has_move_target);
+  model->AddSeparator();
+  model->AddItem(kMenuCloseTab, "Close Tab");
+  return true;
+}
+
+bool CanopyWindow::PopulateSpaceContextMenu(
+    int space_id,
+    CefRefPtr<CefMenuModel> model) {
+  CEF_REQUIRE_UI_THREAD();
+  Space* space = FindSpace(space_id);
+  if (!model || !space || space->retired) return false;
+
+  model->AddItem(kMenuRenameSpace, "Rename Space...");
+  model->AddItem(kMenuLabelSpace, "Change Label...");
+  CefRefPtr<CefMenuModel> theme_menu =
+      model->AddSubMenu(kMenuSpaceTheme, "Theme");
+  for (size_t index = 0; index < std::size(kSpaceColors); ++index) {
+    const int command_id = kMenuSpaceThemeBase + static_cast<int>(index);
+    theme_menu->AddCheckItem(command_id, kSpaceColorLabels[index]);
+    theme_menu->SetChecked(command_id, space->color == kSpaceColors[index]);
+  }
+  model->AddSeparator();
+  model->AddItem(kMenuDeleteSpace, "Delete Space");
+  const size_t available_spaces =
+      std::count_if(spaces_.begin(), spaces_.end(), [](const Space& entry) {
+        return !entry.retired;
+      });
+  model->SetEnabled(kMenuDeleteSpace, available_spaces > 1);
+  return true;
+}
+
+bool CanopyWindow::HandleTabContextMenuCommand(int tab_id, int command_id) {
+  CEF_REQUIRE_UI_THREAD();
+  if (command_id == kMenuPinTab) {
+    ToggleTabPinned(tab_id);
+  } else if (command_id == kMenuFavoriteTab) {
+    ToggleFavorite(tab_id);
+  } else if (command_id == kMenuDuplicateTab) {
+    DuplicateTab(tab_id);
+  } else if (command_id == kMenuCloseTab) {
+    CloseTab(tab_id);
+  } else if (command_id >= kMenuMoveTabToSpaceBase &&
+             command_id < kMenuMoveTabToSpaceBase + kMaximumSpaces) {
+    int requested_index = command_id - kMenuMoveTabToSpaceBase;
+    Space* source = ActiveSpace();
+    if (!source) return false;
+    for (const Space& target : spaces_) {
+      if (target.retired || target.id == source->id) continue;
+      if (requested_index-- == 0) {
+        MoveTabToSpace(tab_id, target.id);
+        return true;
+      }
+    }
+    return false;
+  } else {
+    return false;
+  }
+  return true;
+}
+
+bool CanopyWindow::HandleSpaceContextMenuCommand(int space_id,
+                                                 int command_id) {
+  CEF_REQUIRE_UI_THREAD();
+  Space* space = FindSpace(space_id);
+  if (!space || space->retired) return false;
+  if (command_id == kMenuRenameSpace) {
+    ExecuteSidebarJavaScript("window.canopyPromptRenameSpace(" +
+                             std::to_string(space_id) + ");");
+  } else if (command_id == kMenuLabelSpace) {
+    ExecuteSidebarJavaScript("window.canopyPromptSpaceLabel(" +
+                             std::to_string(space_id) + ");");
+  } else if (command_id == kMenuDeleteSpace) {
+    ExecuteSidebarJavaScript("window.canopyConfirmDeleteSpace(" +
+                             std::to_string(space_id) + ");");
+  } else if (command_id >= kMenuSpaceThemeBase &&
+             command_id < kMenuSpaceThemeBase +
+                              static_cast<int>(std::size(kSpaceColors))) {
+    const size_t index =
+        static_cast<size_t>(command_id - kMenuSpaceThemeBase);
+    UpdateSpaceAppearance(space_id, space->label, kSpaceColors[index]);
+  } else {
+    return false;
+  }
+  return true;
+}
+
+void CanopyWindow::ExecuteSidebarJavaScript(const std::string& script) {
+  CEF_REQUIRE_UI_THREAD();
+  if (!sidebar_view_ || !sidebar_view_->GetBrowser()) return;
+  sidebar_view_->GetBrowser()->GetMainFrame()->ExecuteJavaScript(
+      script, GetSidebarUrl(), 0);
 }
 
 bool CanopyWindow::HandleKeyboardShortcut(int key_code,
@@ -1520,6 +1668,8 @@ std::string CanopyWindow::BuildStateJson() const {
   root->SetInt("maximumSpaces", kMaximumSpaces);
   root->SetInt("maximumTabs", kMaximumTabsPerSpace);
   root->SetInt("closedTabCount", static_cast<int>(closed_tabs_.size()));
+  root->SetString("appVersion", CANOPY_VERSION);
+  root->SetString("appBuild", CANOPY_BUILD_NUMBER);
 
   CefRefPtr<CefListValue> favorites = CefListValue::Create();
   size_t favorite_index = 0;
