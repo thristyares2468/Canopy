@@ -33,6 +33,8 @@ exec "$CONTENTS/Resources/Chromium.app/Contents/MacOS/Chromium" \
   "--load-extension=$CONTENTS/Resources/canopy-extension" \
   --no-first-run \
   --no-default-browser-check \
+  --disable-frame-rate-limit \
+  --disable-gpu-vsync \
   "$HOME_PAGE" \
   "$@"
 LAUNCHER

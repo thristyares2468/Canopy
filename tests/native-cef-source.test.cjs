@@ -218,6 +218,16 @@ test("native build sources and resources are present", () => {
   }
 });
 
+test("native and legacy Chromium launch paths do not cap rendered frames", () => {
+  const appSource = read("native/cef/app_browser_canopy.cc");
+  const legacyBuildScript = read("scripts/build-mac-app.sh");
+
+  for (const flag of ["disable-frame-rate-limit", "disable-gpu-vsync"]) {
+    assert.match(appSource, new RegExp(`AppendSwitch\\(\"${flag}\"\\)`));
+    assert.match(legacyBuildScript, new RegExp(`--${flag}`));
+  }
+});
+
 test("native bundle uses the Canopy app icon", () => {
   const plist = read("native/cef/Info.plist.in");
   const cmake = read("native/cef/CMakeLists.txt");

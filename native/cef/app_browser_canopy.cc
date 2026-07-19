@@ -40,6 +40,8 @@ class BrowserApp : public CefApp, public CefBrowserProcessHandler {
     }
 
     command_line->AppendSwitch("use-mock-keychain");
+    command_line->AppendSwitch("disable-frame-rate-limit");
+    command_line->AppendSwitch("disable-gpu-vsync");
     command_line->AppendSwitchWithValue("disable-features",
                                         "DialMediaRouteProvider");
 
