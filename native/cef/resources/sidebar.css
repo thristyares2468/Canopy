@@ -387,12 +387,68 @@ button:disabled {
 }
 
 .space-stage {
+  position: relative;
+  z-index: 1;
   min-height: 0;
   flex: 1;
   padding: 15px 3px 8px;
   overflow-y: auto;
   scrollbar-color: rgba(255, 255, 255, 0.17) transparent;
   scrollbar-width: thin;
+}
+
+.space-stage-ghost {
+  position: absolute;
+  z-index: 2;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  pointer-events: none;
+  scrollbar-width: none;
+  will-change: opacity, transform;
+}
+
+.space-stage-enter-next,
+.space-stage-enter-previous,
+.space-stage-exit-next,
+.space-stage-exit-previous {
+  will-change: opacity, transform;
+}
+
+.space-stage-enter-next {
+  animation: space-stage-enter-next 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.space-stage-enter-previous {
+  animation: space-stage-enter-previous 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.space-stage-exit-next {
+  animation: space-stage-exit-next 220ms cubic-bezier(0.4, 0, 0.8, 0.2) both;
+}
+
+.space-stage-exit-previous {
+  animation: space-stage-exit-previous 220ms cubic-bezier(0.4, 0, 0.8, 0.2) both;
+}
+
+@keyframes space-stage-enter-next {
+  from { opacity: 0; transform: translateX(22px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes space-stage-enter-previous {
+  from { opacity: 0; transform: translateX(-22px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes space-stage-exit-next {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-22px); }
+}
+
+@keyframes space-stage-exit-previous {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(22px); }
 }
 
 .space-heading {
@@ -1324,7 +1380,11 @@ button.settings-row:hover {
 @media (prefers-reduced-motion: reduce) {
   .overlay-panel,
   .toast,
-  .tab-activity.visible {
+  .tab-activity.visible,
+  .space-stage-enter-next,
+  .space-stage-enter-previous,
+  .space-stage-exit-next,
+  .space-stage-exit-previous {
     animation: none;
     transition: none;
   }

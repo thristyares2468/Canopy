@@ -35,6 +35,23 @@ test("native sidebar locks a trackpad gesture to one Space change", () => {
   assert.match(source, /action\(swipeDistance > 0 \? "next" : "previous"\)/);
 });
 
+test("native sidebar animates Space changes in the direction of travel", () => {
+  const markup = read("native/cef/resources/sidebar.html");
+  const script = read("native/cef/resources/sidebar.js");
+  const styles = read("native/cef/resources/sidebar.css");
+
+  assert.match(markup, /id="sidebarShell"/);
+  assert.match(markup, /id="spaceStage"/);
+  assert.match(script, /function spaceTransitionDirection/);
+  assert.match(script, /function animateSpaceTransition/);
+  assert.match(script, /space-stage-ghost/);
+  assert.match(script, /activeSpaceChanged/);
+  assert.match(styles, /\.space-stage-enter-next/);
+  assert.match(styles, /\.space-stage-enter-previous/);
+  assert.match(styles, /@keyframes space-stage-exit-next/);
+  assert.match(styles, /prefers-reduced-motion/);
+});
+
 test("native Spaces use a compact bottom dock with editable appearance", () => {
   const markup = read("native/cef/resources/sidebar.html");
   const script = read("native/cef/resources/sidebar.js");

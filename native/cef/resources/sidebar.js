@@ -3,7 +3,7 @@
 
   const elements = Object.fromEntries(
     [
-      "addressForm", "addressInput", "backButton", "forwardButton", "reloadButton",
+      "sidebarShell", "spaceStage", "addressForm", "addressInput", "backButton", "forwardButton", "reloadButton",
       "libraryButton", "footerLibraryButton", "settingsButton", "closeSettingsButton",
       "settingsPanel", "libraryPanel", "closeLibraryButton", "spaceName", "spaceGlyph",
       "spaceTabCount", "spaceDots", "pinnedSection", "pinnedTabs", "tabList",
@@ -83,6 +83,50 @@
   let focusBeforeOverlay = null;
   const completedDownloads = new Set();
   const legacySpaceLabels = new Set(["\u25a4", "\u2315", "\u25cf", "<>"]);
+
+  function reducedMotionEnabled() {
+    return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  function spaceTransitionDirection(previousSpaceId, nextSpaces, nextSpaceId) {
+    const previousIndex = state.spaces.findIndex((space) => space.id === previousSpaceId);
+    const nextIndex = nextSpaces.findIndex((space) => space.id === nextSpaceId);
+    if (previousIndex < 0 || nextIndex < 0 || previousIndex === nextIndex) return "next";
+    return nextIndex > previousIndex ? "next" : "previous";
+  }
+
+  function clearSpaceTransitions() {
+    elements.sidebarShell.querySelectorAll(".space-stage-ghost").forEach((ghost) => ghost.remove());
+    elements.spaceStage.classList.remove("space-stage-enter-next", "space-stage-enter-previous");
+  }
+
+  function animateSpaceTransition(direction) {
+    if (reducedMotionEnabled()) return;
+
+    clearSpaceTransitions();
+    const stage = elements.spaceStage;
+    const shell = elements.sidebarShell;
+    const stageBounds = stage.getBoundingClientRect();
+    const shellBounds = shell.getBoundingClientRect();
+    if (!stageBounds.width || !stageBounds.height) return;
+
+    const outgoing = stage.cloneNode(true);
+    outgoing.classList.add("space-stage-ghost", `space-stage-exit-${direction}`);
+    outgoing.removeAttribute("id");
+    outgoing.querySelectorAll("[id]").forEach((element) => element.removeAttribute("id"));
+    outgoing.style.left = `${stageBounds.left - shellBounds.left}px`;
+    outgoing.style.top = `${stageBounds.top - shellBounds.top}px`;
+    outgoing.style.width = `${stageBounds.width}px`;
+    outgoing.style.height = `${stageBounds.height}px`;
+    shell.append(outgoing);
+
+    const enterClass = `space-stage-enter-${direction}`;
+    stage.classList.add(enterClass);
+    window.setTimeout(() => {
+      outgoing.remove();
+      stage.classList.remove(enterClass);
+    }, 240);
+  }
 
   function action(name, parameters = {}) {
     const query = new URLSearchParams(parameters).toString();
@@ -744,6 +788,12 @@
 
   window.canopySetState = (nextState) => {
     if (!nextState || !Array.isArray(nextState.spaces)) return;
+    const previousSpaceId = state.activeSpaceId;
+    const activeSpaceChanged = Boolean(previousSpaceId) &&
+      nextState.activeSpaceId !== previousSpaceId;
+    const transitionDirection = activeSpaceChanged
+      ? spaceTransitionDirection(previousSpaceId, nextState.spaces, nextState.activeSpaceId)
+      : null;
     for (const download of nextState.downloads || []) {
       if (download.complete && !completedDownloads.has(download.id)) {
         completedDownloads.add(download.id);
@@ -752,6 +802,7 @@
         }
       }
     }
+    if (transitionDirection) animateSpaceTransition(transitionDirection);
     state = { ...state, ...nextState };
     render();
   };
