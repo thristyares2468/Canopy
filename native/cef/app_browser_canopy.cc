@@ -51,8 +51,8 @@ class BrowserApp : public CefApp, public CefBrowserProcessHandler {
 
   void OnContextInitialized() override {
     CEF_REQUIRE_UI_THREAD();
-    StartUpdater();
     CefWindow::CreateTopLevelWindow(new CanopyWindow());
+    StartUpdater();
   }
 
  private:

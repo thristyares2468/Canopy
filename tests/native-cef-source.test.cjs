@@ -236,8 +236,11 @@ test("native shell embeds a signed Sparkle update channel", () => {
   const buildScript = read("scripts/build-native-cef.sh");
 
   assert.match(appSource, /StartUpdater\(\)/);
+  assert.match(appSource, /CefWindow::CreateTopLevelWindow[\s\S]*StartUpdater\(\)/);
   assert.match(windowSource, /CheckForUpdates\(\)/);
   assert.match(updaterSource, /SPUStandardUpdaterController/);
+  assert.match(updaterSource, /dispatch_async\(dispatch_get_main_queue\(\)/);
+  assert.match(updaterSource, /insertItem:update_item atIndex:1/);
   assert.match(markup, /id="checkUpdatesButton"/);
   assert.match(plist, /<key>SUFeedURL<\/key>/);
   assert.match(plist, /<key>SUPublicEDKey<\/key>/);
