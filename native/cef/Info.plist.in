@@ -9,7 +9,7 @@
   <key>CFBundleExecutable</key>
   <string>${EXECUTABLE_NAME}</string>
   <key>CFBundleIconFile</key>
-  <string>shared.icns</string>
+  <string>Canopy.icns</string>
   <key>CFBundleIdentifier</key>
   <string>au.com.canopy.browser</string>
   <key>CFBundleInfoDictionaryVersion</key>

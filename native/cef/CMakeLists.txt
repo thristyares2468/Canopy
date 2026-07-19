@@ -159,6 +159,9 @@ add_custom_command(
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
           "${CMAKE_CURRENT_SOURCE_DIR}/resources/sidebar.js"
           "${CANOPY_APP}/Contents/Resources/canopy/sidebar.js"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "${CMAKE_CURRENT_SOURCE_DIR}/resources/Canopy.icns"
+          "${CANOPY_APP}/Contents/Resources/Canopy.icns"
   COMMAND ${CMAKE_COMMAND} -E remove_directory
           "${CANOPY_APP}/Contents/Resources/jims-game"
   COMMAND ${CMAKE_COMMAND} -E copy_directory

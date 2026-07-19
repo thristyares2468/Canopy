@@ -207,6 +207,7 @@ test("native build sources and resources are present", () => {
     "updater_bridge.mm",
     "Info.plist.in",
     "main_canopy.cc",
+    "resources/Canopy.icns",
     "resources/sidebar.html",
     "resources/sidebar.css",
     "resources/sidebar.js"
@@ -215,6 +216,14 @@ test("native build sources and resources are present", () => {
   for (const relativePath of required) {
     assert.equal(fs.existsSync(path.join(nativeRoot, relativePath)), true, relativePath);
   }
+});
+
+test("native bundle uses the Canopy app icon", () => {
+  const plist = read("native/cef/Info.plist.in");
+  const cmake = read("native/cef/CMakeLists.txt");
+
+  assert.match(plist, /<string>Canopy\.icns<\/string>/);
+  assert.match(cmake, /resources\/Canopy\.icns/);
 });
 
 test("native shell embeds a signed Sparkle update channel", () => {
