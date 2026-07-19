@@ -63,8 +63,17 @@ The native build stages the game from the sibling `fpsshooterserver` checkout by
 ```bash
 CANOPY_JIMS_SOURCE_DIR=/path/to/fpsshooterserver \
 CANOPY_JIMS_SERVER_URL=wss://your-server.example/ \
+CANOPY_JIMS_API_KEY=your-canopy-client-key \
 pnpm native:install
 ```
+
+For local builds, the client key can instead be stored in the git-ignored
+`.canopy-jims-api-key` file at the repository root. Set the same value as the
+Railway service variable `CANOPY_CLIENT_API_KEY`. When that server variable is
+present, WebSocket connections without the matching Canopy credential are
+rejected before the game login flow begins. This is an app-access gate, not a
+replacement for player account authentication, and a distributed client key
+must be treated as recoverable from the installed application.
 
 ### Publishing Native Updates
 

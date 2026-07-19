@@ -8,3 +8,4 @@ playwright-report/
 .native-build/
 *.log
 .DS_Store
+.canopy-jims-api-key

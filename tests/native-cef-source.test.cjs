@@ -241,7 +241,10 @@ test("Jim's Mowing is served from the app bundle and connects to a configured se
   assert.match(clientSource, /disable_default_handling = true/);
   assert.match(buildScript, /stage-jims-client\.sh/);
   assert.match(stageScript, /CANOPY_JIMS_SERVER_URL/);
+  assert.match(stageScript, /CANOPY_JIMS_API_KEY/);
+  assert.match(stageScript, /\.canopy-jims-api-key/);
   assert.match(stageScript, /wss:\/\/jimsmowingandlawncare\.up\.railway\.app\//);
+  assert.match(stageScript, /apiKey: "\$escaped_api_key"/);
   assert.match(stageScript, /serviceWorkerEnabled: false/);
   assert.match(cmake, /Resources\/jims-game/);
 });
