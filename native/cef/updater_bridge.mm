@@ -45,6 +45,7 @@ void InstallUpdateMenuItem() {
 
 void StartUpdater() {
   @autoreleasepool {
+    const bool starting_updater = g_updater_controller == nil;
     if (!g_updater_controller) {
       g_updater_controller = [[SPUStandardUpdaterController alloc]
           initWithStartingUpdater:YES
@@ -52,6 +53,10 @@ void StartUpdater() {
               userDriverDelegate:nil];
     }
     InstallUpdateMenuItem();
+    if (starting_updater &&
+        [[g_updater_controller updater] automaticallyChecksForUpdates]) {
+      [[g_updater_controller updater] checkForUpdatesInBackground];
+    }
   }
 }
 

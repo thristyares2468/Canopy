@@ -44,7 +44,7 @@
   <key>SUAutomaticallyUpdate</key>
   <false/>
   <key>SUScheduledCheckInterval</key>
-  <integer>86400</integer>
+  <integer>300</integer>
   <key>SUFeedURL</key>
   <string>https://raw.githubusercontent.com/thristyares2468/Canopy/main/updates/appcast.xml</string>
   <key>SUPublicEDKey</key>
