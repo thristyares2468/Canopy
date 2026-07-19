@@ -190,19 +190,11 @@ void CanopyWindow::OnWindowCreated(CefRefPtr<CefWindow> window) {
   window_->AddChildView(sidebar_view_);
   layout->SetFlexForView(sidebar_view_, 0);
 
-  for (auto& space : spaces_) {
-    if (space.retired) {
-      continue;
-    }
-    for (auto& tab : space.tabs) {
-      if (tab.retired) {
-        continue;
-      }
-      const bool visible = space.id == active_space_id_ &&
-                           tab.id == space.active_tab_id;
-      CreateTabView(space, tab, visible);
-      window_->AddChildView(tab.browser_view);
-      layout->SetFlexForView(tab.browser_view, 1);
+  if (Space* active_space = ActiveSpace()) {
+    EnsureSpaceHasTab(*active_space, kSearchUrl);
+    if (Tab* active_tab = FindTab(*active_space,
+                                  active_space->active_tab_id)) {
+      EnsureTabView(*active_space, *active_tab, true);
     }
   }
 
@@ -996,6 +988,19 @@ void CanopyWindow::CreateTabView(Space& space, Tab& tab, bool visible) {
   tab.browser_view->SetVisible(visible);
 }
 
+void CanopyWindow::EnsureTabView(Space& space, Tab& tab, bool visible) {
+  if (space.retired || tab.retired || !window_) {
+    return;
+  }
+  if (!tab.browser_view) {
+    CreateTabView(space, tab, visible);
+    window_->AddChildView(tab.browser_view);
+    window_->GetLayout()->AsBoxLayout()->SetFlexForView(tab.browser_view, 1);
+    return;
+  }
+  tab.browser_view->SetVisible(visible);
+}
+
 int CanopyWindow::AddTab(Space& space,
                          const std::string& url,
                          bool activate,
@@ -1022,12 +1027,7 @@ int CanopyWindow::AddTab(Space& space,
   tab.can_go_back = false;
   tab.can_go_forward = false;
 
-  const bool show = activate && space.id == active_space_id_;
-  if (!tab.browser_view && window_) {
-    CreateTabView(space, tab, show);
-    window_->AddChildView(tab.browser_view);
-    window_->GetLayout()->AsBoxLayout()->SetFlexForView(tab.browser_view, 1);
-  } else if (tab.browser_view && tab.browser_view->GetBrowser()) {
+  if (tab.browser_view && tab.browser_view->GetBrowser()) {
     tab.browser_view->GetBrowser()->GetMainFrame()->LoadURL(target_url);
   }
 
@@ -1040,10 +1040,10 @@ int CanopyWindow::AddTab(Space& space,
       }
     }
     space.active_tab_id = tab.id;
-    if (space.id == active_space_id_ && tab.browser_view) {
-      tab.browser_view->SetVisible(true);
+    if (space.id == active_space_id_) {
+      EnsureTabView(space, tab, true);
       if (window_) window_->Layout();
-      tab.browser_view->RequestFocus();
+      if (tab.browser_view) tab.browser_view->RequestFocus();
     }
   }
   return tab.id;
@@ -1064,9 +1064,7 @@ void CanopyWindow::SwitchToSpace(int space_id) {
   active_space_id_ = space_id;
   EnsureSpaceHasTab(*target, kSearchUrl);
   Tab* target_tab = FindTab(*target, target->active_tab_id);
-  if (target_tab && target_tab->browser_view) {
-    target_tab->browser_view->SetVisible(true);
-  }
+  if (target_tab) EnsureTabView(*target, *target_tab, true);
   if (window_) {
     window_->Layout();
   }
@@ -1105,17 +1103,20 @@ void CanopyWindow::SwitchRelative(int direction) {
 void CanopyWindow::SwitchToTab(int tab_id) {
   Space* space = ActiveSpace();
   Tab* target = space ? FindTab(*space, tab_id) : nullptr;
-  if (!space || !target || target->retired ||
-      space->active_tab_id == tab_id) {
+  if (!space || !target || target->retired) {
+    return;
+  }
+  if (space->active_tab_id == tab_id) {
+    EnsureTabView(*space, *target, true);
+    if (window_) window_->Layout();
+    if (target->browser_view) target->browser_view->RequestFocus();
     return;
   }
   if (Tab* current = ActiveTab()) {
     if (current->browser_view) current->browser_view->SetVisible(false);
   }
   space->active_tab_id = tab_id;
-  if (target->browser_view) {
-    target->browser_view->SetVisible(true);
-  }
+  EnsureTabView(*space, *target, true);
   if (window_) window_->Layout();
   if (target->browser_view) target->browser_view->RequestFocus();
   SaveWorkspace();
@@ -1199,10 +1200,8 @@ void CanopyWindow::CloseTab(int tab_id) {
   if (was_active) {
     space->active_tab_id = replacement;
     if (Tab* next = FindTab(*space, replacement)) {
-      if (next->browser_view) {
-        next->browser_view->SetVisible(true);
-        next->browser_view->RequestFocus();
-      }
+      EnsureTabView(*space, *next, true);
+      if (next->browser_view) next->browser_view->RequestFocus();
     }
     if (window_) window_->Layout();
   }

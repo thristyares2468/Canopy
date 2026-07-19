@@ -126,6 +126,7 @@ class CanopyWindow : public CefWindowDelegate,
   void EnsureSpaceHasTab(Space& space, const std::string& fallback_url);
   void CreateSidebarView();
   void CreateTabView(Space& space, Tab& tab, bool visible);
+  void EnsureTabView(Space& space, Tab& tab, bool visible);
   int AddTab(Space& space,
              const std::string& url,
              bool activate,

@@ -108,6 +108,38 @@ test("native tabs are persistent within Spaces and support browser workflows", (
   assert.match(script, /tab-context\?id=/);
 });
 
+test("native tabs load BrowserViews on demand instead of flooding CEF at launch", () => {
+  const source = read("native/cef/canopy_window.cc");
+  const header = read("native/cef/canopy_window.h");
+  const createdStart = source.indexOf("void CanopyWindow::OnWindowCreated");
+  const destroyedStart = source.indexOf("void CanopyWindow::OnWindowDestroyed");
+  const startupSource = source.slice(createdStart, destroyedStart);
+
+  assert.match(header, /void EnsureTabView\(Space& space, Tab& tab, bool visible\)/);
+  assert.match(startupSource, /Space\* active_space = ActiveSpace\(\)/);
+  assert.match(startupSource, /EnsureTabView\(\*active_space, \*active_tab, true\)/);
+  assert.doesNotMatch(startupSource, /for \(auto& space : spaces_\)/);
+  assert.match(source, /SwitchToSpace[\s\S]*EnsureTabView\(\*target, \*target_tab, true\)/);
+  assert.match(source, /SwitchToTab[\s\S]*EnsureTabView\(\*space, \*target, true\)/);
+});
+
+test("native sidebar icons are SVG-backed and keyboard-accessible", () => {
+  const markup = read("native/cef/resources/sidebar.html");
+  const script = read("native/cef/resources/sidebar.js");
+  const styles = read("native/cef/resources/sidebar.css");
+
+  assert.match(markup, /id="icon-library"/);
+  assert.match(markup, /id="icon-pin"/);
+  assert.match(markup, /id="icon-star"/);
+  assert.match(script, /function makeIcon\(name/);
+  assert.match(script, /makeQuickAction\("pin"/);
+  assert.match(script, /control\.tabIndex = 0/);
+  assert.match(script, /aria-pressed/);
+  assert.match(styles, /\.ui-icon \{/);
+  assert.doesNotMatch(markup, /&#9638;/);
+  assert.doesNotMatch(script, /"\\u25a0"|"\\u25a1"|"\\u29c9"/);
+});
+
 test("native tab and Space context menus route commands through CEF", () => {
   const windowSource = read("native/cef/canopy_window.cc");
   const clientHeader = read("native/cef/browser_client.h");

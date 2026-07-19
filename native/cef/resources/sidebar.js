@@ -80,7 +80,9 @@
   let commandItems = [];
   let commandIndex = -1;
   let toastTimer = 0;
+  let focusBeforeOverlay = null;
   const completedDownloads = new Set();
+  const legacySpaceLabels = new Set(["\u25a4", "\u2315", "\u25cf", "<>"]);
 
   function action(name, parameters = {}) {
     const query = new URLSearchParams(parameters).toString();
@@ -141,15 +143,28 @@
     return container;
   }
 
-  function makeQuickAction(symbol, label, handler) {
+  function makeIcon(name, className = "ui-icon") {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", className);
+    svg.setAttribute("aria-hidden", "true");
+    const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+    use.setAttribute("href", `#icon-${name}`);
+    svg.append(use);
+    return svg;
+  }
+
+  function makeQuickAction(iconName, label, handler, options = {}) {
     const control = document.createElement("span");
     control.className = "tab-quick-action";
     control.title = label;
     control.setAttribute("role", "button");
     control.setAttribute("aria-label", label);
+    if (typeof options.pressed === "boolean") {
+      control.setAttribute("aria-pressed", String(options.pressed));
+    }
     control.tabIndex = 0;
     control.draggable = false;
-    control.textContent = symbol;
+    control.append(makeIcon(iconName, "ui-icon compact-icon"));
     const activate = (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -162,17 +177,28 @@
     return control;
   }
 
-  function spaceGlyph(name) {
-    const normalized = String(name || "").trim().toLowerCase();
-    if (/school|saac|study/.test(normalized)) return "\u25a4";
-    if (/research|search/.test(normalized)) return "\u2315";
-    if (/personal|home/.test(normalized)) return "\u25cf";
-    if (/code|work|dev/.test(normalized)) return "<>";
-    return normalized.slice(0, 1).toUpperCase() || "C";
+  function spaceIconName(space) {
+    const normalized = String(space?.name || "").trim().toLowerCase();
+    if (/school|saac|study/.test(normalized)) return "book";
+    if (/research|search/.test(normalized)) return "search";
+    if (/personal|home/.test(normalized)) return "user";
+    if (/code|work|dev/.test(normalized)) return "code";
+    return "home";
   }
 
   function displayLabel(space) {
-    return space?.label || spaceGlyph(space?.name);
+    const label = String(space?.label || "").trim();
+    if (label && !legacySpaceLabels.has(label)) return label;
+    return String(space?.name || "C").trim().slice(0, 1).toUpperCase() || "C";
+  }
+
+  function renderSpaceLabel(container, space) {
+    const label = String(space?.label || "").trim();
+    if (label && !legacySpaceLabels.has(label)) {
+      container.textContent = label;
+      return;
+    }
+    container.replaceChildren(makeIcon(spaceIconName(space), "ui-icon space-icon"));
   }
 
   function makePinnedTab(tab) {
@@ -191,10 +217,10 @@
     const actions = document.createElement("span");
     actions.className = "pinned-quick-actions";
     actions.append(
-      makeQuickAction(tabIsFavorite(tab) ? "\u2605" : "\u2606", "Toggle Favorite", () => action("toggle-favorite", { id: tab.id })),
-      makeQuickAction("\u25a0", "Unpin Tab", () => action("pin-tab", { id: tab.id })),
-      makeQuickAction("\u29c9", "Duplicate Tab", () => action("duplicate-tab", { id: tab.id })),
-      makeQuickAction("\u00d7", "Close Tab", () => action("close-tab", { id: tab.id }))
+      makeQuickAction("star", tabIsFavorite(tab) ? "Remove from Favorites" : "Add to Favorites", () => action("toggle-favorite", { id: tab.id }), { pressed: tabIsFavorite(tab) }),
+      makeQuickAction("pin", "Unpin Tab", () => action("pin-tab", { id: tab.id }), { pressed: true }),
+      makeQuickAction("copy", "Duplicate Tab", () => action("duplicate-tab", { id: tab.id })),
+      makeQuickAction("x", "Close Tab", () => action("close-tab", { id: tab.id }))
     );
     button.append(actions);
     button.addEventListener("click", (event) => {
@@ -247,22 +273,14 @@
     activity.setAttribute("aria-hidden", "true");
     row.append(activity);
 
-    const close = document.createElement("span");
-    close.className = "tab-close";
-    close.title = "Close Tab";
-    close.setAttribute("aria-label", `Close ${displayTitle(tab)}`);
-    close.textContent = "\u00d7";
-    close.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      action("close-tab", { id: tab.id });
-    });
+    const close = makeQuickAction("x", `Close ${displayTitle(tab)}`, () => action("close-tab", { id: tab.id }));
+    close.classList.add("tab-close");
     const actions = document.createElement("span");
     actions.className = "tab-quick-actions";
     actions.append(
-      makeQuickAction(tabIsFavorite(tab) ? "\u2605" : "\u2606", "Toggle Favorite", () => action("toggle-favorite", { id: tab.id })),
-      makeQuickAction(tab.pinned ? "\u25a0" : "\u25a1", tab.pinned ? "Unpin Tab" : "Pin Tab", () => action("pin-tab", { id: tab.id })),
-      makeQuickAction("\u29c9", "Duplicate Tab", () => action("duplicate-tab", { id: tab.id }))
+      makeQuickAction("star", tabIsFavorite(tab) ? "Remove from Favorites" : "Add to Favorites", () => action("toggle-favorite", { id: tab.id }), { pressed: tabIsFavorite(tab) }),
+      makeQuickAction("pin", tab.pinned ? "Unpin Tab" : "Pin Tab", () => action("pin-tab", { id: tab.id }), { pressed: Boolean(tab.pinned) }),
+      makeQuickAction("copy", "Duplicate Tab", () => action("duplicate-tab", { id: tab.id }))
     );
     row.append(actions);
     row.append(close);
@@ -296,7 +314,7 @@
     const active = activeSpace();
     const theme = spaceThemes[active?.color] || spaceThemes.mint;
     elements.spaceName.textContent = active?.name || "Canopy";
-    elements.spaceGlyph.textContent = displayLabel(active);
+    renderSpaceLabel(elements.spaceGlyph, active);
     elements.spaceTabCount.textContent = `${state.tabs.length} ${state.tabs.length === 1 ? "tab" : "tabs"}`;
     document.documentElement.style.setProperty("--space-accent", theme.accent);
     document.documentElement.style.setProperty("--surface", theme.surface);
@@ -305,7 +323,9 @@
     document.documentElement.style.setProperty("--muted", theme.muted);
     document.documentElement.style.setProperty("--ink", theme.ink);
     elements.settingsSpaceColors.querySelectorAll(".color-swatch").forEach((swatch) => {
-      swatch.classList.toggle("selected", swatch.dataset.color === (active?.color || "mint"));
+      const selected = swatch.dataset.color === (active?.color || "mint");
+      swatch.classList.toggle("selected", selected);
+      swatch.setAttribute("aria-pressed", String(selected));
     });
     elements.deleteSpaceButton.disabled = state.spaces.length <= 1;
     elements.newSpaceButton.disabled = state.spaces.length >= state.maximumSpaces;
@@ -324,7 +344,7 @@
           button.setAttribute("aria-current", "page");
           const glyph = document.createElement("span");
           glyph.className = "space-dock-glyph";
-          glyph.textContent = displayLabel(space);
+          renderSpaceLabel(glyph, space);
           button.append(glyph);
         }
         button.addEventListener("click", (event) => {
@@ -387,8 +407,9 @@
     const url = state.url || tab?.url || "";
     elements.backButton.disabled = !state.canGoBack;
     elements.forwardButton.disabled = !state.canGoForward;
-    elements.reloadButton.innerHTML = state.loading ? "&#215;" : "&#8635;";
+    elements.reloadButton.replaceChildren(makeIcon(state.loading ? "x" : "refresh"));
     elements.reloadButton.title = state.loading ? "Stop" : "Reload";
+    elements.reloadButton.setAttribute("aria-label", state.loading ? "Stop loading" : "Reload");
     elements.zoomResetButton.textContent = `${state.zoomPercent || 100}%`;
     elements.appVersionValue.textContent = `${state.appVersion || "0.0.0"} (${state.appBuild || "0"})`;
     if (document.activeElement !== elements.addressInput) {
@@ -488,9 +509,18 @@
       button.className = `command-result${index === commandIndex ? " selected" : ""}`;
       button.setAttribute("role", "option");
       button.setAttribute("aria-selected", String(index === commandIndex));
-      const icon = item.kind === "command"
-        ? Object.assign(document.createElement("span"), { className: "command-symbol", textContent: "\u2318" })
-        : makeFavicon(item.tab);
+      const iconNames = {
+        "new-tab": "plus", "reopen-tab": "history", history: "history",
+        downloads: "download", settings: "ellipsis", home: "home", print: "command"
+      };
+      let icon;
+      if (item.kind === "command") {
+        icon = document.createElement("span");
+        icon.className = "command-symbol";
+        icon.append(makeIcon(iconNames[item.command] || "command", "ui-icon compact-icon"));
+      } else {
+        icon = makeFavicon(item.tab);
+      }
       const copy = document.createElement("span");
       copy.className = "command-copy";
       const label = document.createElement("strong");
@@ -545,8 +575,11 @@
   }
 
   function renderLibrary() {
-    elements.historyTabButton.classList.toggle("active", libraryKind === "history");
-    elements.downloadsTabButton.classList.toggle("active", libraryKind === "downloads");
+    const showingHistory = libraryKind === "history";
+    elements.historyTabButton.classList.toggle("active", showingHistory);
+    elements.historyTabButton.setAttribute("aria-selected", String(showingHistory));
+    elements.downloadsTabButton.classList.toggle("active", !showingHistory);
+    elements.downloadsTabButton.setAttribute("aria-selected", String(!showingHistory));
     elements.historyToolbar.hidden = libraryKind !== "history";
     elements.downloadCountValue.textContent = String(state.downloads.length);
     if (libraryKind === "history") {
@@ -576,7 +609,11 @@
             action("open-history", { value: entry.url });
           });
           return button;
-        }) : [emptyState(query ? "No matching history" : "Pages you visit will appear here")])
+        }) : [emptyState(
+          query ? "No matching history" : "No history yet",
+          query ? "Try another search term." : "Pages you visit will appear here.",
+          "history"
+        )])
       );
       return;
     }
@@ -587,7 +624,7 @@
         row.className = "library-row download-row";
         const icon = document.createElement("span");
         icon.className = "download-icon";
-        icon.textContent = download.complete ? "\u2713" : "\u2193";
+        icon.append(makeIcon(download.complete ? "check" : "download", "ui-icon compact-icon"));
         const copy = document.createElement("span");
         copy.className = "library-copy";
         const title = document.createElement("strong");
@@ -613,14 +650,21 @@
           row.append(progress);
         }
         return row;
-      }) : [emptyState("Downloads will appear here")])
+      }) : [emptyState("No downloads yet", "Downloaded files will appear here.", "download")])
     );
   }
 
-  function emptyState(message) {
+  function emptyState(title, detail, iconName) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = message;
+    const icon = document.createElement("span");
+    icon.className = "empty-state-icon";
+    icon.append(makeIcon(iconName, "ui-icon"));
+    const heading = document.createElement("strong");
+    heading.textContent = title;
+    const copy = document.createElement("span");
+    copy.textContent = detail;
+    empty.append(icon, heading, copy);
     return empty;
   }
 
@@ -650,17 +694,44 @@
     panel.setAttribute("aria-hidden", String(!open));
   }
 
+  function rememberOverlayFocus() {
+    if (!elements.settingsPanel.classList.contains("open") &&
+        !elements.libraryPanel.classList.contains("open")) {
+      focusBeforeOverlay = document.activeElement;
+    }
+  }
+
+  function restoreOverlayFocus() {
+    const target = focusBeforeOverlay;
+    focusBeforeOverlay = null;
+    if (target && typeof target.focus === "function") target.focus();
+  }
+
   function setSettingsOpen(open) {
+    const wasOpen = elements.settingsPanel.classList.contains("open");
+    if (open) rememberOverlayFocus();
     setOverlayOpen(elements.settingsPanel, open);
     if (open) setOverlayOpen(elements.libraryPanel, false);
+    if (open) {
+      window.setTimeout(() => elements.closeSettingsButton.focus(), 0);
+    } else if (wasOpen && !elements.libraryPanel.classList.contains("open")) {
+      restoreOverlayFocus();
+    }
   }
 
   function setLibraryOpen(open, kind = libraryKind) {
+    const wasOpen = elements.libraryPanel.classList.contains("open");
+    if (open) rememberOverlayFocus();
     libraryKind = kind;
     setOverlayOpen(elements.libraryPanel, open);
     if (open) {
       setOverlayOpen(elements.settingsPanel, false);
       renderLibrary();
+      window.setTimeout(() => {
+        (libraryKind === "history" ? elements.historySearchInput : elements.closeLibraryButton).focus();
+      }, 0);
+    } else if (wasOpen && !elements.settingsPanel.classList.contains("open")) {
+      restoreOverlayFocus();
     }
   }
 

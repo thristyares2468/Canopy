@@ -7,19 +7,45 @@
     <link rel="stylesheet" href="sidebar.css">
   </head>
   <body>
+    <svg class="icon-sprite" aria-hidden="true">
+      <symbol id="icon-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></symbol>
+      <symbol id="icon-arrow-right" viewBox="0 0 24 24"><path d="m12 5 7 7-7 7"></path><path d="M5 12h14"></path></symbol>
+      <symbol id="icon-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></symbol>
+      <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"></path><path d="M21 3v5h-5"></path></symbol>
+      <symbol id="icon-x" viewBox="0 0 24 24"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></symbol>
+      <symbol id="icon-library" viewBox="0 0 24 24"><path d="M4 4v16"></path><path d="M8 8v12"></path><path d="M12 6v14"></path><path d="m16 6 4 14"></path></symbol>
+      <symbol id="icon-ellipsis" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></symbol>
+      <symbol id="icon-arrow-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"></path></symbol>
+      <symbol id="icon-arrow-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M5 12h14"></path><path d="M12 5v14"></path></symbol>
+      <symbol id="icon-minus" viewBox="0 0 24 24"><path d="M5 12h14"></path></symbol>
+      <symbol id="icon-pencil" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path></symbol>
+      <symbol id="icon-star" viewBox="0 0 24 24"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01Z"></path></symbol>
+      <symbol id="icon-pin" viewBox="0 0 24 24"><path d="M12 17v5"></path><path d="M5 17h14"></path><path d="M15 3.5a2.1 2.1 0 0 1 0 3L14 7l1 5 1 1H8l1-1 1-5-1-.5a2.1 2.1 0 0 1 0-3Z"></path></symbol>
+      <symbol id="icon-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></symbol>
+      <symbol id="icon-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></symbol>
+      <symbol id="icon-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"></path></symbol>
+      <symbol id="icon-home" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"></path><path d="M5 10v10h14V10"></path></symbol>
+      <symbol id="icon-book" viewBox="0 0 24 24"><path d="M12 7v14"></path><path d="M3 18a1 1 0 0 1-1-1V5a2 2 0 0 1 2-2h5a3 3 0 0 1 3 3v15a3 3 0 0 0-3-3Z"></path><path d="M21 18a1 1 0 0 0 1-1V5a2 2 0 0 0-2-2h-5a3 3 0 0 0-3 3v15a3 3 0 0 1 3-3Z"></path></symbol>
+      <symbol id="icon-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"></circle><path d="M20 21a8 8 0 0 0-16 0"></path></symbol>
+      <symbol id="icon-code" viewBox="0 0 24 24"><path d="m8 9-3 3 3 3"></path><path d="m16 9 3 3-3 3"></path><path d="m14 5-4 14"></path></symbol>
+      <symbol id="icon-command" viewBox="0 0 24 24"><path d="M18 9a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3Z"></path></symbol>
+    </svg>
     <main class="sidebar-shell">
       <header class="browser-controls">
-        <button id="backButton" class="icon-button" type="button" title="Back" aria-label="Back">&#8592;</button>
-        <button id="forwardButton" class="icon-button" type="button" title="Forward" aria-label="Forward">&#8594;</button>
-        <button id="reloadButton" class="icon-button" type="button" title="Reload" aria-label="Reload">&#8635;</button>
-        <button id="libraryButton" class="icon-button push-right" type="button" title="Library" aria-label="Open history and downloads">&#9638;</button>
-        <button id="settingsButton" class="icon-button" type="button" title="Settings" aria-label="Settings">&#8943;</button>
+        <button id="backButton" class="icon-button" type="button" title="Back" aria-label="Back"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg></button>
+        <button id="forwardButton" class="icon-button" type="button" title="Forward" aria-label="Forward"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg></button>
+        <button id="reloadButton" class="icon-button" type="button" title="Reload" aria-label="Reload"><svg class="ui-icon" aria-hidden="true"><use href="#icon-refresh"></use></svg></button>
+        <button id="libraryButton" class="icon-button push-right" type="button" title="Library" aria-label="Open history and downloads"><svg class="ui-icon" aria-hidden="true"><use href="#icon-library"></use></svg></button>
+        <button id="settingsButton" class="icon-button" type="button" title="Settings" aria-label="Settings"><svg class="ui-icon" aria-hidden="true"><use href="#icon-ellipsis"></use></svg></button>
       </header>
 
       <form id="addressForm" class="address-form">
         <span class="site-indicator" aria-hidden="true"></span>
         <input id="addressInput" type="text" inputmode="url" autocomplete="off" spellcheck="false" aria-label="Address and search" placeholder="Search or enter an address">
-        <button class="go-button" type="submit" title="Go" aria-label="Go">&#8594;</button>
+        <button class="go-button" type="submit" title="Go" aria-label="Go"><svg class="ui-icon" aria-hidden="true"><use href="#icon-chevron-right"></use></svg></button>
       </form>
 
       <section id="commandMenu" class="command-menu" aria-hidden="true">
@@ -29,9 +55,9 @@
 
       <form id="findBar" class="find-bar" hidden>
         <input id="findInput" type="search" autocomplete="off" placeholder="Find on page" aria-label="Find on page">
-        <button id="findPreviousButton" class="icon-button small" type="button" title="Previous match" aria-label="Previous match">&#8593;</button>
-        <button id="findNextButton" class="icon-button small" type="button" title="Next match" aria-label="Next match">&#8595;</button>
-        <button id="closeFindButton" class="icon-button small" type="button" title="Close find" aria-label="Close find">&#215;</button>
+        <button id="findPreviousButton" class="icon-button small" type="button" title="Previous match" aria-label="Previous match"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-up"></use></svg></button>
+        <button id="findNextButton" class="icon-button small" type="button" title="Next match" aria-label="Next match"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-down"></use></svg></button>
+        <button id="closeFindButton" class="icon-button small" type="button" title="Close find" aria-label="Close find"><svg class="ui-icon" aria-hidden="true"><use href="#icon-x"></use></svg></button>
       </form>
 
       <section id="favoritesList" class="favorites" aria-label="Favorites"></section>
@@ -46,8 +72,8 @@
             </div>
           </div>
           <div class="space-actions">
-            <button id="renameSpaceButton" class="icon-button small" type="button" title="Rename Space" aria-label="Rename Space">&#9998;</button>
-            <button id="deleteSpaceButton" class="icon-button small" type="button" title="Delete Space" aria-label="Delete Space">&#8722;</button>
+            <button id="renameSpaceButton" class="icon-button small" type="button" title="Rename Space" aria-label="Rename Space"><svg class="ui-icon" aria-hidden="true"><use href="#icon-pencil"></use></svg></button>
+            <button id="deleteSpaceButton" class="icon-button small" type="button" title="Delete Space" aria-label="Delete Space"><svg class="ui-icon" aria-hidden="true"><use href="#icon-minus"></use></svg></button>
           </div>
         </div>
 
@@ -59,7 +85,7 @@
         <div class="tabs-section">
           <div id="tabList" class="tab-list" role="tablist" aria-label="Open tabs"></div>
           <button id="newTabButton" class="new-tab-button" type="button">
-            <span aria-hidden="true">+</span>
+            <svg class="ui-icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
             <span>New Tab</span>
             <kbd>&#8984;T</kbd>
           </button>
@@ -67,39 +93,39 @@
       </section>
 
       <footer class="sidebar-footer">
-        <button id="footerLibraryButton" class="dock-action library-dock" type="button" title="Library" aria-label="Open library">&#9638;</button>
+        <button id="footerLibraryButton" class="dock-action library-dock" type="button" title="Library" aria-label="Open library"><svg class="ui-icon" aria-hidden="true"><use href="#icon-library"></use></svg></button>
         <nav id="spaceDots" class="space-dock" aria-label="Spaces"></nav>
-        <button id="newSpaceButton" class="dock-action" type="button" title="New Space" aria-label="New Space">+</button>
+        <button id="newSpaceButton" class="dock-action" type="button" title="New Space" aria-label="New Space"><svg class="ui-icon" aria-hidden="true"><use href="#icon-plus"></use></svg></button>
       </footer>
 
     </main>
 
-    <section id="libraryPanel" class="overlay-panel" aria-hidden="true">
+    <section id="libraryPanel" class="overlay-panel" role="dialog" aria-modal="true" aria-labelledby="libraryTitle" aria-hidden="true">
       <header class="panel-header">
         <div>
           <p class="eyebrow">Canopy</p>
-          <h2>Library</h2>
+          <h2 id="libraryTitle">Library</h2>
         </div>
-        <button id="closeLibraryButton" class="icon-button" type="button" title="Close library" aria-label="Close library">&#215;</button>
+        <button id="closeLibraryButton" class="icon-button" type="button" title="Close library" aria-label="Close library"><svg class="ui-icon" aria-hidden="true"><use href="#icon-x"></use></svg></button>
       </header>
-      <nav class="segmented-control" aria-label="Library section">
-        <button id="historyTabButton" class="segment active" type="button">History</button>
-        <button id="downloadsTabButton" class="segment" type="button">Downloads</button>
+      <nav class="segmented-control" role="tablist" aria-label="Library section">
+        <button id="historyTabButton" class="segment active" type="button" role="tab" aria-selected="true">History</button>
+        <button id="downloadsTabButton" class="segment" type="button" role="tab" aria-selected="false">Downloads</button>
       </nav>
       <div id="historyToolbar" class="library-toolbar">
         <input id="historySearchInput" type="search" placeholder="Search history" aria-label="Search history">
         <button id="clearHistoryButton" class="text-button" type="button">Clear</button>
       </div>
-      <div id="libraryList" class="library-list"></div>
+      <div id="libraryList" class="library-list" aria-live="polite"></div>
     </section>
 
-    <section id="settingsPanel" class="overlay-panel" aria-hidden="true">
+    <section id="settingsPanel" class="overlay-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" aria-hidden="true">
       <header class="panel-header">
         <div>
           <p class="eyebrow">Canopy</p>
-          <h2>Settings</h2>
+          <h2 id="settingsTitle">Settings</h2>
         </div>
-        <button id="closeSettingsButton" class="icon-button" type="button" title="Close settings" aria-label="Close settings">&#215;</button>
+        <button id="closeSettingsButton" class="icon-button" type="button" title="Close settings" aria-label="Close settings"><svg class="ui-icon" aria-hidden="true"><use href="#icon-x"></use></svg></button>
       </header>
 
       <div class="settings-content">
@@ -198,7 +224,7 @@
           </div>
           <button id="checkUpdatesButton" class="settings-row" type="button">
             <span>Check for updates</span>
-            <span class="settings-value">&#8635;</span>
+            <span class="settings-value"><svg class="ui-icon compact-icon" aria-hidden="true"><use href="#icon-refresh"></use></svg></span>
           </button>
           <div class="settings-note">Canopy securely checks the signed update feed and installs approved releases without replacing the app manually.</div>
         </section>

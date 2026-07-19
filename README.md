@@ -54,7 +54,7 @@ pnpm native:install
 open ~/Applications/'Canopy Native.app'
 ```
 
-The native prototype downloads the pinned official `cef-project` source and CEF ARM64 binary into `~/Library/Caches/Canopy/cef-project`. Its window is composed from CEF BrowserViews, so there is no stock Chromium tab bar. The left sidebar is permanently visible and every Space owns a persistent collection of live Chromium tabs. Spaces, tabs, pinned tabs, global Favorites, closed-tab recovery, and ordering persist in `~/Library/Application Support/Canopy Native/workspace.tsv`.
+The native prototype downloads the pinned official `cef-project` source and CEF ARM64 binary into `~/Library/Caches/Canopy/cef-project`. Its window is composed from CEF BrowserViews, so there is no stock Chromium tab bar. The left sidebar is permanently visible and every Space owns a persistent tab collection that loads on demand. Spaces, tabs, pinned tabs, global Favorites, closed-tab recovery, and ordering persist in `~/Library/Application Support/Canopy Native/workspace.tsv`.
 
 The native shell includes an address Command menu, back/forward/reload, multi-tab Spaces, drag reordering, a one-Space-per-gesture trackpad switcher, Space create/edit/delete, global Favorites, pinned tabs, history, downloads, find-on-page, page zoom, printing, keyboard navigation, popup-to-tab routing, persistent closed-tab recovery, and signed in-app updates. Location, camera, and microphone prompts are denied by default, while browsing data can be cleared from Canopy Settings. The Jim's Mowing compatibility workspace remains under **Settings > Advanced**; it is loaded from `Contents/Resources/jims-game` inside the app, and only multiplayer, account, and persistence traffic is sent to Railway.
 
