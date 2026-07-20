@@ -261,6 +261,20 @@ test("native shell embeds a signed Sparkle update channel", () => {
   assert.match(buildScript, /download-sparkle\.sh/);
 });
 
+test("published update feed matches the current Canopy release", () => {
+  const appcast = read("updates/appcast.xml");
+  const version = read("native/version.txt").trim();
+  const buildNumber = read("native/build-number.txt").trim();
+
+  assert.match(appcast, new RegExp(`<title>${version}</title>`));
+  assert.match(appcast, new RegExp(`<sparkle:version>${buildNumber}</sparkle:version>`));
+  assert.match(
+    appcast,
+    new RegExp(`releases/download/v${version}/Canopy-Native-${version}\\.zip`),
+    "the newest update must download from its own GitHub release"
+  );
+});
+
 test("native sidebar resolves from the app bundle instead of CEF framework resources", () => {
   const source = read("native/cef/canopy_window.cc");
   assert.match(source, /PK_DIR_EXE/);

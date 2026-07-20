@@ -3,6 +3,25 @@
     <channel>
         <title>Canopy Native</title>
         <item>
+            <title>0.5.0</title>
+            <pubDate>Mon, 20 Jul 2026 11:54:33 +1000</pubDate>
+            <link>https://github.com/thristyares2468/Canopy/releases/tag/v0.5.0</link>
+            <sparkle:version>5</sparkle:version>
+            <sparkle:shortVersionString>0.5.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[## Canopy 0.5.0
+
+- Adds Arc-style Spaces, favorites, native sidebar controls, and trackpad navigation.
+- Bundles Jim's Mowing in the native app and restores the signed update workflow.
+- Improves browser controls, app icons, graphics behavior, and live FPS reporting.
+]]></description>
+            <enclosure url="https://github.com/thristyares2468/Canopy/releases/download/v0.5.0/Canopy-Native-0.5.0.zip" length="405411532" type="application/octet-stream" sparkle:edSignature="z9o5vc87BlxtcUtqOYLyERLuhwsbJzWeAvwar7h/xqkeUh+GPZ4YJURzZdbblyA08aZ7uGDlAlh7XUhfMVTIBg=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/thristyares2468/Canopy/releases/download/v0.5.0/Canopy%20Native5-4.delta" sparkle:deltaFrom="4" length="1368658" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977616" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="z5YEJnZeS6ImVZ5jK1xY03aGiqVeWAhJJ9UNMlETCwr5l15CleeOL6n2ubHwvvS+zngG4rcdzebpr8iRehqpBg=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>0.4.0</title>
             <pubDate>Sat, 18 Jul 2026 19:31:32 +1000</pubDate>
             <link>https://github.com/thristyares2468/Canopy/releases/tag/v0.4.0</link>
